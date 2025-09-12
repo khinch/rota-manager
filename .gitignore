@@ -22,5 +22,7 @@ target
 
 
 # Added by cargo
-
 /target
+
+# Do not check in env files
+.env

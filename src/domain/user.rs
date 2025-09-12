@@ -1,10 +1,11 @@
-use super::{Email, Password};
+use super::{Email, Password, UserId};
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct User {
     pub email: Email,
     pub password: Password,
     pub requires_2fa: bool,
+    pub id: UserId,
 }
 
 impl User {
@@ -13,6 +14,7 @@ impl User {
             email,
             password,
             requires_2fa,
+            id: UserId::default(),
         }
     }
 }

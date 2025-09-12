@@ -6,6 +6,7 @@ mod login_attempt_id;
 mod password;
 mod two_fa_code;
 mod user;
+mod user_id;
 
 pub use data_stores::*;
 pub use email::*;
@@ -15,3 +16,4 @@ pub use login_attempt_id::*;
 pub use password::*;
 pub use two_fa_code::*;
 pub use user::*;
+pub use user_id::*;

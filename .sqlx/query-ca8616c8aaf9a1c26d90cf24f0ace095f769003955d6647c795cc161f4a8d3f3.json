@@ -1,20 +1,25 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT email, password_hash, requires_2fa\n                    FROM users\n                    WHERE email = $1\n                    ",
+  "query": "\n                    SELECT id, email, password_hash, requires_2fa\n                    FROM users\n                    WHERE email = $1\n                    ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
         "name": "email",
         "type_info": "Text"
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "password_hash",
         "type_info": "Text"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "requires_2fa",
         "type_info": "Bool"
       }
@@ -27,9 +32,9 @@
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "d3493b604fcca905a6747f65b9d429e92462603c79921ce41799f41c52c1f13f"
+  "hash": "ca8616c8aaf9a1c26d90cf24f0ace095f769003955d6647c795cc161f4a8d3f3"
 }
-
