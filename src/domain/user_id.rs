@@ -1,7 +1,8 @@
 use color_eyre::eyre::{Context, Result};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UserId(Uuid);
 
 impl UserId {

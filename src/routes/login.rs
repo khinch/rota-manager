@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState,
     domain::{
-        AuthAPIError, Email, LoginAttemptId, Password, TwoFACode,
+        AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserId,
         UserStoreError,
     },
     utils::auth::generate_auth_cookie,
@@ -53,7 +53,7 @@ pub async fn login(
 
     match user.requires_2fa {
         true => handle_2fa(&user.email, &state, jar).await,
-        false => handle_no_2fa(&user.email, jar).await,
+        false => handle_no_2fa(&user.email, &user.id, jar).await,
     }
 }
 
@@ -114,12 +114,13 @@ async fn handle_2fa(
 #[tracing::instrument(name = "Handling login without 2FA", skip_all)]
 async fn handle_no_2fa(
     email: &Email,
+    user_id: &UserId,
     jar: CookieJar,
 ) -> (
     CookieJar,
     Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
 ) {
-    let auth_cookie = match generate_auth_cookie(&email) {
+    let auth_cookie = match generate_auth_cookie(&email, &user_id) {
         Ok(cookie) => cookie,
         Err(err) => {
             return (jar, Err(AuthAPIError::UnexpectedError(err.into())))

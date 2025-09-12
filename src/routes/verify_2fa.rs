@@ -45,7 +45,12 @@ pub async fn verify_2fa(
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 
-    let auth_cookie = match generate_auth_cookie(&email) {
+    let user_id = match &state.user_store.read().await.get_user(&email).await {
+        Ok(user) => user.id.clone(),
+        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
+    };
+
+    let auth_cookie = match generate_auth_cookie(&email, &user_id) {
         Ok(cookie) => cookie,
         Err(err) => {
             return (jar, Err(AuthAPIError::UnexpectedError(eyre!(err))))

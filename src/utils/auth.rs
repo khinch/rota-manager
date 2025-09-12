@@ -7,15 +7,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::BannedTokenStoreType,
-    domain::{BannedTokenStoreError, Email},
+    domain::{BannedTokenStoreError, Email, UserId},
 };
 
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET};
 
 // Create cookie with a new JWT auth token
 #[tracing::instrument(name = "Generating auth cookie", skip_all)]
-pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>> {
-    let token = generate_auth_token(email)?;
+pub fn generate_auth_cookie(
+    email: &Email,
+    user_id: &UserId,
+) -> Result<Cookie<'static>> {
+    let token = generate_auth_token(email, user_id)?;
     Ok(create_auth_cookie(token))
 }
 
@@ -37,7 +40,10 @@ pub const TOKEN_TTL_SECONDS: i64 = 600; // 10 minutes
 
 // Create JWT auth token
 #[tracing::instrument(name = "Generating auth token", skip_all)]
-fn generate_auth_token(email: &Email) -> Result<Secret<String>> {
+fn generate_auth_token(
+    email: &Email,
+    user_id: &UserId,
+) -> Result<Secret<String>> {
     let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
         .wrap_err("Failed to create 10 minute time delta")?;
 
@@ -54,8 +60,9 @@ fn generate_auth_token(email: &Email) -> Result<Secret<String>> {
     ))?;
 
     let sub = email.as_ref().expose_secret().to_owned();
+    let id = user_id.clone();
 
-    let claims = Claims { sub, exp };
+    let claims = Claims { sub, exp, id };
 
     create_token(&claims)
 }
@@ -109,6 +116,7 @@ fn create_token(claims: &Claims) -> Result<Secret<String>> {
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
+    pub id: UserId,
 }
 
 #[cfg(test)]
@@ -127,7 +135,8 @@ mod tests {
     async fn test_generate_auth_cookie() {
         let email =
             Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
-        let cookie = generate_auth_cookie(&email).unwrap();
+        let user_id = UserId::default();
+        let cookie = generate_auth_cookie(&email, &user_id).unwrap();
         assert_eq!(cookie.name(), JWT_COOKIE_NAME);
         assert_eq!(cookie.value().split('.').count(), 3);
         assert_eq!(cookie.path(), Some("/"));
@@ -150,7 +159,8 @@ mod tests {
     async fn test_generate_auth_token() {
         let email =
             Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
-        let result = generate_auth_token(&email).unwrap();
+        let user_id = UserId::default();
+        let result = generate_auth_token(&email, &user_id).unwrap();
         assert_eq!(result.expose_secret().split('.').count(), 3);
     }
 
@@ -158,11 +168,13 @@ mod tests {
     async fn test_validate_token_with_valid_token() {
         let email =
             Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
-        let token = generate_auth_token(&email).unwrap();
+        let user_id = UserId::default();
+        let token = generate_auth_token(&email, &user_id).unwrap();
         let banned_token_store =
             Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let result = validate_token(&token, banned_token_store).await.unwrap();
         assert_eq!(result.sub, "test@example.com");
+        assert_eq!(result.id, user_id);
 
         let exp = Utc::now()
             .checked_add_signed(
@@ -187,7 +199,8 @@ mod tests {
     async fn test_validate_token_with_banned_token() {
         let email =
             Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
-        let token = generate_auth_token(&email).unwrap();
+        let user_id = UserId::default();
+        let token = generate_auth_token(&email, &user_id).unwrap();
         let banned_token_store =
             Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         banned_token_store
