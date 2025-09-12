@@ -16,9 +16,7 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use domain::AuthAPIError;
 pub mod routes;
-use crate::routes::{
-    delete_user, login, logout, signup, verify_2fa, verify_token,
-};
+use crate::routes::{delete_user, login, logout, signup, verify_2fa, verify_token};
 use crate::utils::tracing::*;
 pub mod app_state;
 pub mod domain;
@@ -35,27 +33,17 @@ impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
         log_error_chain(&self);
         let (status, error_message) = match self {
-            AuthAPIError::UserAlreadyExists => {
-                (StatusCode::CONFLICT, "User already exists")
-            }
-            AuthAPIError::ValidationError => {
-                (StatusCode::BAD_REQUEST, "Invalid input")
-            }
-            AuthAPIError::UserNotFound => {
-                (StatusCode::NOT_FOUND, "User not found")
-            }
+            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::ValidationError => (StatusCode::BAD_REQUEST, "Invalid input"),
+            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
             AuthAPIError::IncorrectCredentials => {
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
             AuthAPIError::UnexpectedError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
-            AuthAPIError::MissingToken => {
-                (StatusCode::BAD_REQUEST, "Missing token")
-            }
-            AuthAPIError::InvalidToken => {
-                (StatusCode::UNAUTHORIZED, "Invalid token")
-            }
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
@@ -65,7 +53,8 @@ impl IntoResponse for AuthAPIError {
 }
 
 fn log_error_chain(e: &(dyn Error + 'static)) {
-    let separator = "\n-----------------------------------------------------------------------------------\n";
+    let separator =
+        "\n-----------------------------------------------------------------------------------\n";
     let mut report = format!("{}{:?}\n", separator, e);
     let mut current = e.source();
     while let Some(cause) = current {
@@ -83,20 +72,11 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(
-        app_state: AppState,
-        address: &str,
-    ) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let allowed_origins = [
-            "http://localhost:8000".parse()?,
-            "http://localhost:5000".parse()?,
-            "http://127.0.0.1:8000".parse()?,
-            "http://127.0.0.1:5000".parse()?,
-            "http://app-service:8000".parse()?,
-            "http://67.205.162.100:8000".parse()?,
-            "https://67.205.162.100:8000".parse()?,
-            "http://lgr.testwebsitepleaseignore.uk:8000".parse()?,
-            "https://lgr.testwebsitepleaseignore.uk:8000".parse()?,
+            "http://localhost:3000".parse()?,
+            "http://127.0.0.1:3000".parse()?,
+            "https://rota-manager.testwebsitepleaseignore.uk:3000".parse()?,
         ];
 
         let cors = CorsLayer::new()
@@ -105,12 +85,12 @@ impl Application {
             .allow_origin(allowed_origins);
 
         let router = Router::new()
-            .route("/signup", post(signup))
-            .route("/login", post(login))
-            .route("/verify-2fa", post(verify_2fa))
-            .route("/logout", post(logout))
-            .route("/verify-token", post(verify_token))
-            .route("/delete-user", delete(delete_user))
+            .route("/auth/signup", post(signup))
+            .route("/auth/login", post(login))
+            .route("/auth/verify-2fa", post(verify_2fa))
+            .route("/auth/logout", post(logout))
+            .route("/auth/verify-token", post(verify_token))
+            .route("/auth/delete-user", delete(delete_user))
             .with_state(app_state)
             .layer(cors)
             .layer(
@@ -158,9 +138,7 @@ async fn shutdown_signal() {
     }
 }
 
-pub async fn get_postgres_pool(
-    url: &Secret<String>,
-) -> Result<PgPool, sqlx::Error> {
+pub async fn get_postgres_pool(url: &Secret<String>) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
         .max_connections(5)
         .connect(url.expose_secret())

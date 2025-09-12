@@ -1,19 +1,15 @@
-use auth_service::{
+use reqwest::{cookie::Jar, Client};
+use rota_manager::{
     app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
     domain::Email,
     get_postgres_pool, get_redis_client,
     services::{
-        data_stores::{
-            PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore,
-        },
+        data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
         postmark_email_client::PostmarkEmailClient,
     },
-    utils::constants::{
-        test, DATABASE_URL, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
-    },
+    utils::constants::{test, DATABASE_URL, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME},
     Application,
 };
-use reqwest::{cookie::Jar, Client};
 use secrecy::{ExposeSecret, Secret};
 use sqlx::{
     postgres::{PgConnectOptions, PgConnection, PgPoolOptions},
@@ -42,12 +38,11 @@ impl TestApp {
         let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
 
         let redis_connection = Arc::new(RwLock::new(configure_redis()));
-        let banned_token_store = Arc::new(RwLock::new(
-            RedisBannedTokenStore::new(redis_connection.clone()),
-        ));
+        let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(
+            redis_connection.clone(),
+        )));
 
-        let two_fa_code_store =
-            Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
+        let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
 
         let email_server = MockServer::start().await;
         let base_url = email_server.uri();
@@ -90,7 +85,7 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(format!("{}/signup", &self.address))
+            .post(format!("{}/auth/signup", &self.address))
             .json(body)
             .send()
             .await
@@ -102,7 +97,7 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(format!("{}/login", &self.address))
+            .post(format!("{}/auth/login", &self.address))
             .json(body)
             .send()
             .await
@@ -111,7 +106,7 @@ impl TestApp {
 
     pub async fn post_logout(&self) -> reqwest::Response {
         self.http_client
-            .post(format!("{}/logout", &self.address))
+            .post(format!("{}/auth/logout", &self.address))
             .send()
             .await
             .expect("Failed to execute request")
@@ -122,22 +117,19 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(format!("{}/verify-2fa", &self.address))
+            .post(format!("{}/auth/verify-2fa", &self.address))
             .json(body)
             .send()
             .await
             .expect("Failed to execute request")
     }
 
-    pub async fn post_verify_token<Body>(
-        &self,
-        body: &Body,
-    ) -> reqwest::Response
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
     {
         self.http_client
-            .post(format!("{}/verify-token", &self.address))
+            .post(format!("{}/auth/verify-token", &self.address))
             .json(body)
             .send()
             .await
@@ -149,7 +141,7 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .delete(format!("{}/delete-user", &self.address))
+            .delete(format!("{}/auth/delete-user", &self.address))
             .json(body)
             .send()
             .await
@@ -202,8 +194,7 @@ async fn configure_database(db_conn_string: &Secret<String>, db_name: &str) {
         .expect("Failed to create database.");
 
     // Connect to new database
-    let db_conn_string =
-        format!("{}/{}", db_conn_string.expose_secret(), db_name);
+    let db_conn_string = format!("{}/{}", db_conn_string.expose_secret(), db_name);
 
     let connection = PgPoolOptions::new()
         .connect(&db_conn_string)
@@ -261,8 +252,7 @@ fn configure_redis() -> redis::Connection {
 fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
     let postmark_auth_token = Secret::new("auth_token".to_owned());
 
-    let sender =
-        Email::parse(POSTMARK_EMAIL_SENDER_ADDRESS.to_owned()).unwrap();
+    let sender = Email::parse(POSTMARK_EMAIL_SENDER_ADDRESS.to_owned()).unwrap();
 
     let http_client = Client::builder()
         .timeout(test::email_client::TIMEOUT)

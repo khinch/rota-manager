@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{domain::Email, utils::constants::JWT_COOKIE_NAME};
+use rota_manager::{domain::Email, utils::constants::JWT_COOKIE_NAME};
 use secrecy::{ExposeSecret, Secret};
 use test_context::test_context;
 use wiremock::{matchers::method, matchers::path, Mock, ResponseTemplate};

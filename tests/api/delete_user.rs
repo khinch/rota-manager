@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{routes::DeleteUserResponse, ErrorResponse};
+use rota_manager::{routes::DeleteUserResponse, ErrorResponse};
 
 use test_context::test_context;
 

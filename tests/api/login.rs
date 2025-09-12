@@ -1,7 +1,6 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{
-    domain::Email, routes::TwoFactorAuthResponse,
-    utils::constants::JWT_COOKIE_NAME, ErrorResponse,
+use rota_manager::{
+    domain::Email, routes::TwoFactorAuthResponse, utils::constants::JWT_COOKIE_NAME, ErrorResponse,
 };
 
 use secrecy::{ExposeSecret, Secret};
@@ -10,9 +9,7 @@ use wiremock::{matchers::method, matchers::path, Mock, ResponseTemplate};
 
 #[test_context(TestApp)]
 #[tokio::test]
-async fn should_return_200_if_valid_credentials_and_2fa_disabled(
-    app: &mut TestApp,
-) {
+async fn should_return_200_if_valid_credentials_and_2fa_disabled(app: &mut TestApp) {
     let random_email = get_random_email();
     let signup_body = serde_json::json!({
         "email": random_email,
@@ -40,9 +37,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled(
 
 #[test_context(TestApp)]
 #[tokio::test]
-async fn should_return_206_if_valid_credentials_and_2fa_enabled(
-    app: &mut TestApp,
-) {
+async fn should_return_206_if_valid_credentials_and_2fa_enabled(app: &mut TestApp) {
     let random_email = get_random_email();
     let signup_body = serde_json::json!({
         "email": random_email,
@@ -74,8 +69,8 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled(
         .expect("Could not deserialize response body to TwoFactorAuthResponse");
     assert_eq!(json_body.message, String::from("2FA required"));
 
-    let email = Email::parse(Secret::new(String::from(&random_email)))
-        .expect("Failed to parse email");
+    let email =
+        Email::parse(Secret::new(String::from(&random_email))).expect("Failed to parse email");
 
     let (expected_id, _two_fa_code) = app
         .two_fa_code_store

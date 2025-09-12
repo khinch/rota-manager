@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::utils::constants::JWT_COOKIE_NAME;
+use rota_manager::utils::constants::JWT_COOKIE_NAME;
 use serde_json::json;
 use test_context::test_context;
 
