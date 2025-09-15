@@ -18,3 +18,11 @@ pub enum AuthAPIError {
     #[error("Validation error")]
     ValidationError,
 }
+
+#[derive(Debug, Error)]
+pub enum ProjectAPIError {
+    #[error("Invalid project name")]
+    InvalidName(#[source] Report),
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
+}

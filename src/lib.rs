@@ -1,7 +1,7 @@
 use axum::{
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, post},
+    routing::{delete, get, post},
     serve::Serve,
     Json, Router,
 };
@@ -14,9 +14,12 @@ use std::error::Error;
 use tokio::signal;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-use domain::AuthAPIError;
+use domain::{AuthAPIError, ProjectAPIError};
 pub mod routes;
-use crate::routes::{delete_user, login, logout, signup, verify_2fa, verify_token};
+use crate::routes::{
+    delete_user, get_project_list, login, logout, new_project, signup,
+    verify_2fa, verify_token,
+};
 use crate::utils::tracing::*;
 pub mod app_state;
 pub mod domain;
@@ -33,17 +36,45 @@ impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
         log_error_chain(&self);
         let (status, error_message) = match self {
-            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
-            AuthAPIError::ValidationError => (StatusCode::BAD_REQUEST, "Invalid input"),
-            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
+            AuthAPIError::UserAlreadyExists => {
+                (StatusCode::CONFLICT, "User already exists")
+            }
+            AuthAPIError::ValidationError => {
+                (StatusCode::BAD_REQUEST, "Invalid input")
+            }
+            AuthAPIError::UserNotFound => {
+                (StatusCode::NOT_FOUND, "User not found")
+            }
             AuthAPIError::IncorrectCredentials => {
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
             AuthAPIError::UnexpectedError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
-            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
-            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
+            AuthAPIError::MissingToken => {
+                (StatusCode::BAD_REQUEST, "Missing token")
+            }
+            AuthAPIError::InvalidToken => {
+                (StatusCode::UNAUTHORIZED, "Invalid token")
+            }
+        };
+        let body = Json(ErrorResponse {
+            error: error_message.to_string(),
+        });
+        (status, body).into_response()
+    }
+}
+
+impl IntoResponse for ProjectAPIError {
+    fn into_response(self) -> Response {
+        log_error_chain(&self);
+        let (status, error_message) = match self {
+            ProjectAPIError::UnexpectedError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
+            ProjectAPIError::InvalidName(_) => {
+                (StatusCode::BAD_REQUEST, "Invalid project name")
+            }
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
@@ -72,7 +103,10 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(
+        app_state: AppState,
+        address: &str,
+    ) -> Result<Self, Box<dyn Error>> {
         let allowed_origins = [
             "http://localhost:3000".parse()?,
             "http://127.0.0.1:3000".parse()?,
@@ -91,6 +125,8 @@ impl Application {
             .route("/auth/logout", post(logout))
             .route("/auth/verify-token", post(verify_token))
             .route("/auth/delete-user", delete(delete_user))
+            .route("/projects/new", post(new_project))
+            .route("/projects/list", get(get_project_list))
             .with_state(app_state)
             .layer(cors)
             .layer(
@@ -138,7 +174,9 @@ async fn shutdown_signal() {
     }
 }
 
-pub async fn get_postgres_pool(url: &Secret<String>) -> Result<PgPool, sqlx::Error> {
+pub async fn get_postgres_pool(
+    url: &Secret<String>,
+) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
         .max_connections(5)
         .connect(url.expose_secret())

@@ -1,4 +1,7 @@
-use super::{Email, LoginAttemptId, Password, TwoFACode, User};
+use super::{
+    Email, LoginAttemptId, Password, ProjectId, ProjectName, TwoFACode, User,
+    UserId,
+};
 use color_eyre::eyre::{Report, Result};
 use secrecy::Secret;
 use thiserror::Error;
@@ -101,6 +104,38 @@ impl PartialEq for TwoFACodeStoreError {
         matches!(
             (self, other),
             (Self::LoginAttemptIdNotFound, Self::LoginAttemptIdNotFound)
+                | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+        )
+    }
+}
+
+#[async_trait::async_trait]
+pub trait ProjectStore {
+    async fn get_project_list(
+        &mut self,
+        user_id: &UserId,
+    ) -> Result<Vec<(ProjectId, ProjectName)>>;
+    async fn add_project(
+        &mut self,
+        user_id: &UserId,
+        project_id: &ProjectId,
+        project_name: &ProjectName,
+    ) -> Result<()>;
+}
+
+#[derive(Debug, Error)]
+pub enum ProjectStoreError {
+    #[error("Project ID exists")]
+    ProjectIDExists,
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
+}
+
+impl PartialEq for ProjectStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (Self::ProjectIDExists, Self::ProjectIDExists)
                 | (Self::UnexpectedError(_), Self::UnexpectedError(_))
         )
     }

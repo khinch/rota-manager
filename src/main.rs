@@ -8,12 +8,16 @@ use rota_manager::{
     domain::Email,
     get_postgres_pool, get_redis_client,
     services::{
-        data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
+        data_stores::{
+            PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
+            RedisTwoFACodeStore,
+        },
         postmark_email_client::PostmarkEmailClient,
     },
     utils::{
         constants::{
-            prod, DATABASE_URL, POSTMARK_AUTH_TOKEN, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
+            prod, DATABASE_URL, POSTMARK_AUTH_TOKEN,
+            POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
         },
         tracing::init_tracing,
     },
@@ -26,14 +30,18 @@ async fn main() {
     init_tracing().expect("Failed to initialise tracing");
 
     let pg_pool = configure_postgresql().await;
-    let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
+    let user_store =
+        Arc::new(RwLock::new(PostgresUserStore::new(pg_pool.clone())));
+    let project_store =
+        Arc::new(RwLock::new(PostgresProjectStore::new(pg_pool)));
 
     let redis_connection = Arc::new(RwLock::new(configure_redis()));
     let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(
         redis_connection.clone(),
     )));
 
-    let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
+    let two_fa_code_store =
+        Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
 
     let email_client = Arc::new(configure_postmark_email_client());
     let app_state = AppState::new(
@@ -41,6 +49,7 @@ async fn main() {
         banned_token_store,
         two_fa_code_store,
         email_client,
+        project_store,
     );
 
     let application = Application::build(app_state, prod::APP_ADDRESS)

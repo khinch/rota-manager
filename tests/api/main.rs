@@ -2,6 +2,8 @@ mod delete_user;
 mod helpers;
 mod login;
 mod logout;
+mod projects_list;
+mod projects_new;
 mod signup;
 mod verify_2fa;
 mod verify_token;

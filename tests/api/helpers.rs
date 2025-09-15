@@ -1,16 +1,22 @@
-use reqwest::{cookie::Jar, Client};
+use reqwest::{cookie::Jar, Client, Response};
 use rota_manager::{
     app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
     domain::Email,
     get_postgres_pool, get_redis_client,
     services::{
-        data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
+        data_stores::{
+            PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
+            RedisTwoFACodeStore,
+        },
         postmark_email_client::PostmarkEmailClient,
     },
-    utils::constants::{test, DATABASE_URL, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME},
+    utils::constants::{
+        test, DATABASE_URL, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
+    },
     Application,
 };
 use secrecy::{ExposeSecret, Secret};
+use serde_json::Value;
 use sqlx::{
     postgres::{PgConnectOptions, PgConnection, PgPoolOptions},
     Connection, Executor, PgPool,
@@ -19,7 +25,9 @@ use std::{str::FromStr, sync::Arc};
 use test_context::AsyncTestContext;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use wiremock::MockServer;
+use wiremock::{
+    matchers::method, matchers::path, Mock, MockServer, ResponseTemplate,
+};
 
 pub struct TestApp {
     pub address: String,
@@ -35,14 +43,18 @@ impl TestApp {
     pub async fn new() -> Self {
         let tmp_db_name = Uuid::new_v4().to_string();
         let pg_pool = configure_postgresql(&tmp_db_name).await;
-        let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
+        let user_store =
+            Arc::new(RwLock::new(PostgresUserStore::new(pg_pool.clone())));
+        let project_store =
+            Arc::new(RwLock::new(PostgresProjectStore::new(pg_pool)));
 
         let redis_connection = Arc::new(RwLock::new(configure_redis()));
-        let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(
-            redis_connection.clone(),
-        )));
+        let banned_token_store = Arc::new(RwLock::new(
+            RedisBannedTokenStore::new(redis_connection.clone()),
+        ));
 
-        let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
+        let two_fa_code_store =
+            Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
 
         let email_server = MockServer::start().await;
         let base_url = email_server.uri();
@@ -53,6 +65,7 @@ impl TestApp {
             banned_token_store.clone(),
             two_fa_code_store.clone(),
             email_client,
+            project_store,
         );
 
         let app = Application::build(app_state, test::APP_ADDRESS)
@@ -124,7 +137,10 @@ impl TestApp {
             .expect("Failed to execute request")
     }
 
-    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    pub async fn post_verify_token<Body>(
+        &self,
+        body: &Body,
+    ) -> reqwest::Response
     where
         Body: serde::Serialize,
     {
@@ -143,6 +159,29 @@ impl TestApp {
         self.http_client
             .delete(format!("{}/auth/delete-user", &self.address))
             .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn post_projects_new<Body>(
+        &self,
+        body: &Body,
+    ) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/projects/new", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_projects_list(&self) -> reqwest::Response {
+        self.http_client
+            .get(format!("{}/projects/list", &self.address))
             .send()
             .await
             .expect("Failed to execute request")
@@ -194,7 +233,8 @@ async fn configure_database(db_conn_string: &Secret<String>, db_name: &str) {
         .expect("Failed to create database.");
 
     // Connect to new database
-    let db_conn_string = format!("{}/{}", db_conn_string.expose_secret(), db_name);
+    let db_conn_string =
+        format!("{}/{}", db_conn_string.expose_secret(), db_name);
 
     let connection = PgPoolOptions::new()
         .connect(&db_conn_string)
@@ -252,7 +292,8 @@ fn configure_redis() -> redis::Connection {
 fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
     let postmark_auth_token = Secret::new("auth_token".to_owned());
 
-    let sender = Email::parse(POSTMARK_EMAIL_SENDER_ADDRESS.to_owned()).unwrap();
+    let sender =
+        Email::parse(POSTMARK_EMAIL_SENDER_ADDRESS.to_owned()).unwrap();
 
     let http_client = Client::builder()
         .timeout(test::email_client::TIMEOUT)
@@ -260,4 +301,127 @@ fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
         .expect("Failed to build HTTP client");
 
     PostmarkEmailClient::new(base_url, sender, postmark_auth_token, http_client)
+}
+
+pub async fn signup(
+    app: &mut TestApp,
+    email: &str,
+    password: &str,
+    two_fa: bool,
+) {
+    assert_eq!(
+        app.post_signup(&serde_json::json!({
+            "email": email,
+            "password": password,
+            "requires2FA": two_fa
+        }))
+        .await
+        .status()
+        .as_u16(),
+        201 // TODO return some useful info here
+    );
+}
+
+pub async fn login(app: &mut TestApp, email: &str, password: &str) {
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+
+    match app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": password
+        }))
+        .await
+        .status()
+        .as_u16()
+    {
+        x if x == 200 => (),
+        x if x == 206 => {
+            let two_fa_details = get_expected_2fa_details(app, email).await;
+            verify_2fa(app, email, &two_fa_details.0, &two_fa_details.1).await;
+        }
+        e => panic!("Failed to log in. Expected 200 or 206, but got {e}. email: {email}, password: {password}"),
+    }
+}
+
+pub async fn verify_2fa(app: &mut TestApp, email: &str, id: &str, code: &str) {
+    assert_eq!(
+        app.post_verify_2fa(&serde_json::json!({
+            "email": email,
+            "loginAttemptId": id,
+            "2FACode": code
+        }))
+        .await
+        .status()
+        .as_u16(),
+        200 // TODO return some useful info here
+    );
+}
+
+pub async fn get_expected_2fa_details(
+    app: &mut TestApp,
+    email: &str,
+) -> (String, String) {
+    let email = Email::parse(Secret::new(String::from(email)))
+        .expect("Failed to parse email");
+
+    let (expected_id, expected_two_fa_code) = app
+        .two_fa_code_store
+        .read()
+        .await
+        .get_code(&email)
+        .await
+        .expect("Failed to get 2FA data from store");
+
+    (
+        expected_id.as_ref().expose_secret().to_owned(),
+        expected_two_fa_code.as_ref().expose_secret().to_owned(),
+    )
+}
+
+pub async fn get_session(app: &mut TestApp, two_fa: bool) -> String {
+    let email = get_random_email();
+    let password = "password";
+
+    signup(app, &email, &password, two_fa).await;
+    login(app, &email, &password).await;
+
+    email
+}
+
+pub async fn add_new_project(app: &mut TestApp, name: &str) -> String {
+    let response = app
+        .post_projects_new(&serde_json::json!({
+            "name": name
+        }))
+        .await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        201,
+        "Failed to add new project with name: {name}"
+    );
+
+    let response_body: serde_json::Value =
+        response.json().await.expect("Failed to parse JSON");
+
+    let response_id = response_body
+        .get("id")
+        .expect("No ID in response")
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    response_id
+}
+
+pub async fn get_json_response_body(response: Response) -> Value {
+    let body: Value = response
+        .json()
+        .await
+        .expect("failed to parse response body JSON: {response}");
+    body
 }

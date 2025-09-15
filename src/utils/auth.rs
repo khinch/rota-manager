@@ -1,4 +1,7 @@
-use axum_extra::extract::cookie::{Cookie, SameSite};
+use axum_extra::extract::{
+    cookie::{Cookie, SameSite},
+    CookieJar,
+};
 use chrono::Utc;
 use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
@@ -8,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::BannedTokenStoreType,
     domain::{BannedTokenStoreError, Email, UserId},
+    AuthAPIError,
 };
 
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET};
@@ -110,6 +114,21 @@ fn create_token(claims: &Claims) -> Result<Secret<String>> {
     .wrap_err("failed to create token")?;
 
     Ok(Secret::new(token_string))
+}
+
+// Validate JWT cookie and return the claims
+#[tracing::instrument(name = "Get claims from JWT token", skip_all)]
+pub async fn get_claims(
+    jar: &CookieJar,
+    banned_token_store: &BannedTokenStoreType,
+) -> Result<Claims> {
+    let cookie = match jar.get(JWT_COOKIE_NAME) {
+        Some(cookie) => cookie,
+        None => return Err(eyre!(AuthAPIError::MissingToken)),
+    };
+
+    let token = Secret::new(cookie.value().to_string());
+    validate_token(&token, banned_token_store.clone()).await
 }
 
 #[derive(Debug, Serialize, Deserialize)]
