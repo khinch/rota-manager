@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use rota_manager::{routes::SignupResponse, ErrorResponse};
+use rota_manager::{routes::auth::SignupResponse, ErrorResponse};
 use test_context::test_context;
 
 #[test_context(TestApp)]

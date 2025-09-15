@@ -1,5 +1,5 @@
 use crate::helpers::{add_new_project, delete_user, get_session, TestApp};
-use rota_manager::{domain::Email, routes::DeleteUserResponse};
+use rota_manager::{domain::Email, routes::auth::DeleteUserResponse};
 use secrecy::Secret;
 
 use test_context::test_context;

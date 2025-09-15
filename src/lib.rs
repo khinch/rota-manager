@@ -7,6 +7,7 @@ use axum::{
 };
 
 use redis::{Client, RedisResult};
+// use routes::projects;
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -17,8 +18,8 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use domain::{AuthAPIError, ProjectAPIError};
 pub mod routes;
 use crate::routes::{
-    delete_user, get_project_list, login, logout, new_project, signup,
-    verify_2fa, verify_token,
+    auth::{delete_user, login, logout, signup, verify_2fa, verify_token},
+    projects::{get_project_list, new_project},
 };
 use crate::utils::tracing::*;
 pub mod app_state;
