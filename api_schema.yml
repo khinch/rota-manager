@@ -6,11 +6,13 @@ info:
   version: 1.0.0
 
 servers:
-  - url: 'http://example.com/api'
-    description: Main server
+  - url: "https://rota-manager.testwebsitepleaseignore.uk"
+    description: Production
+  - url: "https://test.rota-manager.testwebsitepleaseignore.uk"
+    description: Test
 
 paths:
-  /signup:
+  /auth/signup:
     post:
       summary: Register a new user
       requestBody:
@@ -30,7 +32,7 @@ paths:
                   type: boolean
                   description: Flag to enable two-factor authentication
       responses:
-        '201':
+        "201":
           description: User created successfully
           content:
             application/json:
@@ -40,7 +42,7 @@ paths:
                   message:
                     type: string
                     example: User created successfully!
-        '400':
+        "400":
           description: Invalid input
           content:
             application/json:
@@ -49,7 +51,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '409':
+        "409":
           description: Email already exists
           content:
             application/json:
@@ -58,9 +60,9 @@ paths:
                 properties:
                   error:
                     type: string
-        '422':
+        "422":
           description: Unprocessable content
-        '500':
+        "500":
           description: Unexpected error
           content:
             application/json:
@@ -69,8 +71,7 @@ paths:
                 properties:
                   error:
                     type: string
-          
-  /login:
+  /auth/login:
     post:
       summary: Authenticate user and return JWT
       requestBody:
@@ -87,14 +88,14 @@ paths:
                   type: string
                   format: password
       responses:
-        '200':
+        "200":
           description: Login successful
           headers:
             Set-Cookie:
               schema:
                 type: string
                 example: jwt=your_token; HttpOnly; SameSite=Lax; Secure; Path=/
-        '206':
+        "206":
           description: Login requires 2FA
           content:
             application/json:
@@ -105,7 +106,7 @@ paths:
                     type: string
                   loginAttemptId:
                     type: string
-        '400':
+        "400":
           description: Invalid input
           content:
             application/json:
@@ -114,7 +115,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '401':
+        "401":
           description: Authentication failed
           content:
             application/json:
@@ -123,9 +124,9 @@ paths:
                 properties:
                   error:
                     type: string
-        '422':
+        "422":
           description: Unprocessable content
-        '500':
+        "500":
           description: Unexpected error
           content:
             application/json:
@@ -134,8 +135,7 @@ paths:
                 properties:
                   error:
                     type: string
-
-  /verify-2fa:
+  /auth/verify-2fa:
     post:
       summary: Verify 2FA token
       requestBody:
@@ -153,14 +153,14 @@ paths:
                 2FACode:
                   type: string
       responses:
-        '200':
+        "200":
           description: 2FA token verified successfully
           headers:
             Set-Cookie:
               schema:
                 type: string
                 example: jwt=your_token; HttpOnly; SameSite=Lax; Secure; Path=/
-        '400':
+        "400":
           description: Invalid input
           content:
             application/json:
@@ -169,7 +169,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '401':
+        "401":
           description: Authentication failed
           content:
             application/json:
@@ -178,9 +178,9 @@ paths:
                 properties:
                   error:
                     type: string
-        '422':
+        "422":
           description: Unprocessable content
-        '500':
+        "500":
           description: Unexpected error
           content:
             application/json:
@@ -189,8 +189,7 @@ paths:
                 properties:
                   error:
                     type: string
-
-  /logout:
+  /auth/logout:
     post:
       summary: Logout user
       parameters:
@@ -201,14 +200,14 @@ paths:
           required: true
           description: JWT token for authentication
       responses:
-        '200':
+        "200":
           description: Logout successful
           headers:
             Set-Cookie:
               schema:
                 type: string
                 example: jwt=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax; Secure; Path=/
-        '400':
+        "400":
           description: Invalid input
           content:
             application/json:
@@ -217,7 +216,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '401':
+        "401":
           description: JWT is not valid
           content:
             application/json:
@@ -226,7 +225,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '500':
+        "500":
           description: Unexpected error
           content:
             application/json:
@@ -235,8 +234,7 @@ paths:
                 properties:
                   error:
                     type: string
-
-  /verify-token:
+  /auth/verify-token:
     post:
       summary: Verify JWT
       description: Verifies if a JWT is valid
@@ -250,9 +248,9 @@ paths:
                 token:
                   type: string
       responses:
-        '200':
+        "200":
           description: Token is valid
-        '401':
+        "401":
           description: JWT is not valid
           content:
             application/json:
@@ -261,9 +259,175 @@ paths:
                 properties:
                   error:
                     type: string
-        '422':
+        "422":
           description: Unprocessable content
-        '500':
+        "500":
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /auth/delete:
+    delete:
+      summary: Delete user
+      parameters:
+        - in: cookie
+          name: jwt
+          schema:
+            type: string
+          required: true
+          description: JWT token for authentication
+      responses:
+        "200":
+          description: Deletion successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: JWT is not valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /projects/new:
+    post:
+      summary: Add a new project to a user account
+      parameters:
+        - in: cookie
+          name: jwt
+          schema:
+            type: string
+          required: true
+          description: JWT token for authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+      responses:
+        "201":
+          description: Creation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  id:
+                    type: string
+                    minLength: 36
+                    maxLength: 36
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /projects/list:
+    get:
+      summary: Retrieve list of projects for the logged-in user
+      parameters:
+        - in: cookie
+          name: jwt
+          schema:
+            type: string
+          required: true
+          description: JWT token for authentication
+      responses:
+        "200":
+          description: List is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  id:
+                    type: string
+                    minLength: 36
+                    maxLength: 36
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "422":
+          description: Unprocessable content
+        "500":
           description: Unexpected error
           content:
             application/json:

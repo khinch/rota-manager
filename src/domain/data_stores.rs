@@ -121,6 +121,7 @@ pub trait ProjectStore {
         project_id: &ProjectId,
         project_name: &ProjectName,
     ) -> Result<()>;
+    async fn delete_projects(&mut self, user_id: &UserId) -> Result<()>;
 }
 
 #[derive(Debug, Error)]

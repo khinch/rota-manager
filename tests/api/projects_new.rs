@@ -20,8 +20,8 @@ async fn should_return_200_for_valid_requests(app: &mut TestApp) {
         },
         "id": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 255
+          "minLength": 36,
+          "maxLength": 36
         }
       },
       "required": [
@@ -31,8 +31,8 @@ async fn should_return_200_for_valid_requests(app: &mut TestApp) {
     });
 
     let project_names = [
-        "my hovercraft is full of eels",
-        "my sister got bitten by a moose once",
+        "My hovercraft is full of eels",
+        "A moose once bit my sister",
     ];
 
     for project_name in project_names.iter() {

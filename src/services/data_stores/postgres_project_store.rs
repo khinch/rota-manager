@@ -76,4 +76,19 @@ impl ProjectStore for PostgresProjectStore {
         })?;
         Ok(())
     }
+
+    #[tracing::instrument(name = "Deleting all projects for user", skip_all)]
+    async fn delete_projects(&mut self, user_id: &UserId) -> Result<()> {
+        sqlx::query!(
+            r#"
+                   DELETE FROM projects_list WHERE user_id = $1
+                   "#,
+            user_id.as_ref(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
+
+        Ok(())
+    }
 }

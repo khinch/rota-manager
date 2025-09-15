@@ -1,6 +1,9 @@
 use reqwest::{cookie::Jar, Client, Response};
 use rota_manager::{
-    app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
+    app_state::{
+        AppState, BannedTokenStoreType, ProjectStoreType, TwoFACodeStoreType,
+        UserStoreType,
+    },
     domain::Email,
     get_postgres_pool, get_redis_client,
     services::{
@@ -37,6 +40,8 @@ pub struct TestApp {
     pub http_client: reqwest::Client,
     pub tmp_db_name: String,
     pub two_fa_code_store: TwoFACodeStoreType,
+    pub user_store: UserStoreType,
+    pub project_store: ProjectStoreType,
 }
 
 impl TestApp {
@@ -61,11 +66,11 @@ impl TestApp {
         let email_client = Arc::new(configure_postmark_email_client(base_url));
 
         let app_state = AppState::new(
-            user_store,
+            user_store.clone(),
             banned_token_store.clone(),
             two_fa_code_store.clone(),
             email_client,
-            project_store,
+            project_store.clone(),
         );
 
         let app = Application::build(app_state, test::APP_ADDRESS)
@@ -90,6 +95,8 @@ impl TestApp {
             http_client,
             tmp_db_name,
             two_fa_code_store,
+            user_store,
+            project_store,
         }
     }
 
@@ -152,13 +159,9 @@ impl TestApp {
             .expect("Failed to execute request")
     }
 
-    pub async fn delete_user<Body>(&self, body: &Body) -> reqwest::Response
-    where
-        Body: serde::Serialize,
-    {
+    pub async fn delete_user(&self) -> reqwest::Response {
         self.http_client
             .delete(format!("{}/auth/delete-user", &self.address))
-            .json(body)
             .send()
             .await
             .expect("Failed to execute request")
@@ -424,4 +427,20 @@ pub async fn get_json_response_body(response: Response) -> Value {
         .await
         .expect("failed to parse response body JSON: {response}");
     body
+}
+
+pub async fn _logout(app: &mut TestApp) {
+    assert_eq!(
+        app.post_logout().await.status().as_u16(),
+        200,
+        "Failed to log out"
+    );
+}
+
+pub async fn delete_user(app: &mut TestApp) {
+    assert_eq!(
+        app.delete_user().await.status().as_u16(),
+        200,
+        "Failed to delete user"
+    );
 }
