@@ -121,7 +121,7 @@ async fn should_return_401_if_not_authenticated(app: &mut TestApp) {
     let response = app.get_projects_list().await;
     assert_eq!(
         response.status().as_u16(),
-        500, // TODO error handling overhaul
-        "Should return 401 (actually 500 for now) for unauthenticated requests",
+        401,
+        "Should return 401 for unauthenticated requests",
     );
 }

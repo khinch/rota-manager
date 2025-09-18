@@ -55,6 +55,18 @@ mod tests {
     use super::*;
     use secrecy::{ExposeSecret, Secret};
 
+    impl PartialEq for UserStoreError {
+        fn eq(&self, other: &Self) -> bool {
+            matches!(
+                (self, other),
+                (Self::UserAlreadyExists, Self::UserAlreadyExists)
+                    | (Self::UserNotFound, Self::UserNotFound)
+                    | (Self::InvalidCredentials, Self::InvalidCredentials)
+                    | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+            )
+        }
+    }
+
     fn get_test_users() -> Vec<User> {
         vec![
             User::new(

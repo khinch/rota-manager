@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
+use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -12,21 +13,17 @@ use crate::{
 pub async fn get_project_list(
     State(state): State<AppState>,
     jar: CookieJar,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<ProjectListResponse>), ProjectAPIError>,
-) {
-    let user_id = match get_claims(&jar, &state.banned_token_store).await {
-        Ok(claims) => claims.id,
-        Err(e) => return (jar, Err(ProjectAPIError::UnexpectedError(e))), // TODO error handling needs overhaul
-    };
+) -> Result<(StatusCode, CookieJar, Json<ProjectListResponse>), ProjectAPIError>
+{
+    let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
 
-    let mut project_store = state.project_store.write().await;
-
-    let project_list = match project_store.get_project_list(&user_id).await {
-        Ok(list) => list,
-        Err(e) => return (jar, Err(ProjectAPIError::UnexpectedError(e))),
-    };
+    let project_list = state
+        .project_store
+        .write()
+        .await
+        .get_project_list(&user_id)
+        .await
+        .map_err(|e| ProjectAPIError::UnexpectedError(eyre!(e)))?;
 
     let response = Json(ProjectListResponse {
         projects: project_list
@@ -35,7 +32,7 @@ pub async fn get_project_list(
             .collect(),
     });
 
-    (jar, Ok((StatusCode::OK, response)))
+    Ok((StatusCode::OK, jar, response))
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

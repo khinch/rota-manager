@@ -1,6 +1,5 @@
-use color_eyre::eyre::{Result, WrapErr};
+use super::ValidationError;
 use secrecy::{ExposeSecret, Secret};
-use validator::ValidationError;
 
 #[derive(Debug, Clone)]
 pub struct Password(Secret<String>);
@@ -12,35 +11,29 @@ impl PartialEq for Password {
 }
 
 impl Password {
-    pub fn parse(s: Secret<String>) -> Result<Password> {
-        match validate_password(&s) {
-            Ok(()) => Ok(Self(s)),
-            Err(message) => {
-                let mut error = ValidationError::new("Invalid password");
-                error.message = Some(message.into());
-                Err(error).wrap_err("failed to parse password")
-            }
-        }
+    pub fn parse(s: Secret<String>) -> Result<Password, ValidationError> {
+        validate_password(&s)?;
+        Ok(Self(s))
     }
 }
 
-fn validate_password(s: &Secret<String>) -> Result<(), String> {
+fn validate_password(s: &Secret<String>) -> Result<(), ValidationError> {
     let min_characters = 8;
     let max_characters = 128;
     let char_count = s.expose_secret().chars().count();
 
     if char_count < min_characters {
-        return Err(format!(
-            "Too short. Should be {} to {} characters.",
+        return Err(ValidationError::new(format!(
+            "Password too short. Should be {} to {} characters.",
             min_characters, max_characters
-        ));
+        )));
     }
 
     if char_count > max_characters {
-        return Err(format!(
-            "Too long. Should be {} to {} characters.",
-            min_characters, max_characters,
-        ));
+        return Err(ValidationError::new(format!(
+            "Password too long. Should be {} to {} characters.",
+            min_characters, max_characters
+        )));
     }
 
     Ok(())
@@ -88,18 +81,7 @@ mod tests {
             let result = Password::parse(secret_password);
 
             let error = result.expect_err(short_password);
-
-            // Downcast to get the original ValidationError
-            let validation_error = error
-                .downcast_ref::<ValidationError>()
-                .expect("Expected ValidationError");
-
-            assert_eq!(validation_error.code, "Invalid password");
-            assert!(validation_error
-                .message
-                .as_ref()
-                .unwrap()
-                .starts_with("Too short"));
+            assert!(error.as_ref().starts_with("Password too short"));
         }
     }
 
@@ -114,27 +96,17 @@ mod tests {
             let result = Password::parse(secret_password);
             let error = result.expect_err(long_password);
 
-            // Downcast to get the original ValidationError
-            let validation_error = error
-                .downcast_ref::<ValidationError>()
-                .expect("Expected ValidationError");
-
-            assert_eq!(validation_error.code, "Invalid password");
-            assert!(validation_error
-                .message
-                .as_ref()
-                .unwrap()
-                .starts_with("Too long"));
+            assert!(error.as_ref().starts_with("Password too long"));
         }
     }
 
     #[derive(Debug, Clone)]
-    struct ValidPasswordFixture(pub Secret<String>); // Updated!
+    struct ValidPasswordFixture(pub Secret<String>);
 
     impl quickcheck::Arbitrary for ValidPasswordFixture {
         fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Self {
             let password = FakePassword(8..30).fake_with_rng(g);
-            Self(Secret::new(password)) // Updated!
+            Self(Secret::new(password))
         }
     }
     #[quickcheck_macros::quickcheck]

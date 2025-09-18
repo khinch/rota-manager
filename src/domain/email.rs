@@ -1,6 +1,5 @@
-use color_eyre::eyre::{Result, WrapErr};
+use super::ValidationError;
 use secrecy::{ExposeSecret, Secret};
-use validator::ValidationError;
 
 use std::hash::Hash;
 
@@ -22,11 +21,9 @@ impl Hash for Email {
 impl Eq for Email {}
 
 impl Email {
-    pub fn parse(s: Secret<String>) -> Result<Self> {
+    pub fn parse(s: Secret<String>) -> Result<Self, ValidationError> {
         if !validator::validate_email(s.expose_secret()) {
-            let mut error = ValidationError::new("Invalid email address");
-            error.message = Some("For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address".into());
-            return Err(error).wrap_err("failed to parse email");
+            return Err(ValidationError::new("Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address".to_string()));
         }
 
         Ok(Self(s))
@@ -73,14 +70,7 @@ mod tests {
             let secret_email = Secret::new(invalid_email.to_string());
             let result = Email::parse(secret_email);
             let error = result.expect_err(invalid_email);
-
-            // Downcast to get the original ValidationError
-            let validation_error = error
-                .downcast_ref::<ValidationError>()
-                .expect("Expected ValidationError");
-
-            assert_eq!(validation_error.code, "Invalid email address");
-            assert_eq!(validation_error.message.as_ref().unwrap(), "For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address");
+            assert_eq!(error.as_ref(), "Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address");
         }
     }
 

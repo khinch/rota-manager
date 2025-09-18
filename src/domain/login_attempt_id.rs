@@ -1,4 +1,4 @@
-use color_eyre::eyre::{Context, Result};
+use super::ValidationError;
 use secrecy::{ExposeSecret, Secret};
 
 #[derive(Debug, Clone)]
@@ -11,9 +11,11 @@ impl PartialEq for LoginAttemptId {
 }
 
 impl LoginAttemptId {
-    pub fn parse(id: Secret<String>) -> Result<Self> {
-        let parsed = uuid::Uuid::try_parse(&id.expose_secret())
-            .wrap_err("Invalid login attempt ID")?;
+    pub fn parse(id: Secret<String>) -> Result<Self, ValidationError> {
+        let parsed =
+            uuid::Uuid::try_parse(&id.expose_secret()).map_err(|_| {
+                ValidationError::new("Invalid login attempt ID".to_string())
+            })?;
         Ok(Self(Secret::new(parsed.to_string())))
     }
 }
@@ -80,7 +82,7 @@ mod tests {
             let result =
                 LoginAttemptId::parse(Secret::new(invalid_id.to_string()));
             let error = result.expect_err(invalid_id);
-            assert_eq!(error.to_string(), "Invalid login attempt ID");
+            assert_eq!(error.as_ref(), "Invalid login attempt ID");
         }
     }
 }

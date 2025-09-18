@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
+use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,37 +14,26 @@ pub async fn new_project(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(request): Json<NewProjectRequest>,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<NewProjectResponse>), ProjectAPIError>,
-) {
-    let user_id = match get_claims(&jar, &state.banned_token_store).await {
-        Ok(claims) => claims.id,
-        Err(e) => return (jar, Err(ProjectAPIError::UnexpectedError(e))), // TODO error handling needs overhaul
-    };
-
+) -> Result<(StatusCode, CookieJar, Json<NewProjectResponse>), ProjectAPIError>
+{
+    let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
     let project_id = ProjectId::default();
-    let mut project_store = state.project_store.write().await;
+    let project_name = ProjectName::parse(&request.name)?;
 
-    let project_name = match ProjectName::parse(&request.name) {
-        Ok(name) => name,
-        Err(e) => return (jar, Err(ProjectAPIError::UnexpectedError(e))),
-    };
-
-    match project_store
+    state
+        .project_store
+        .write()
+        .await
         .add_project(&user_id, &project_id, &project_name)
         .await
-    {
-        Ok(()) => (),
-        Err(e) => return (jar, Err(ProjectAPIError::UnexpectedError(e))),
-    }
+        .map_err(|e| ProjectAPIError::UnexpectedError(eyre!(e)))?;
 
     let response = Json(NewProjectResponse {
         id: project_id.as_ref().to_string(),
         name: project_name.as_ref().to_string(),
     });
 
-    (jar, Ok((StatusCode::CREATED, response)))
+    Ok((StatusCode::CREATED, jar, response))
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

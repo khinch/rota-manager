@@ -7,13 +7,13 @@ use axum::{
 };
 
 use redis::{Client, RedisResult};
-// use routes::projects;
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::error::Error;
 use tokio::signal;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tracing::Level;
 
 use domain::{AuthAPIError, ProjectAPIError};
 pub mod routes;
@@ -35,32 +35,44 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
-        log_error_chain(&self);
-        let (status, error_message) = match self {
+        let (status, error_message) = match &self {
             AuthAPIError::UserAlreadyExists => {
-                (StatusCode::CONFLICT, "User already exists")
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::CONFLICT, "User already exists".to_string())
             }
-            AuthAPIError::ValidationError => {
-                (StatusCode::BAD_REQUEST, "Invalid input")
+            AuthAPIError::ValidationError(message) => {
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::BAD_REQUEST, format!("{message}"))
             }
             AuthAPIError::UserNotFound => {
-                (StatusCode::NOT_FOUND, "User not found")
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::NOT_FOUND, "User not found".to_string())
             }
             AuthAPIError::IncorrectCredentials => {
-                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+                log_error_chain(&self, Level::DEBUG);
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Incorrect credentials".to_string(),
+                )
             }
             AuthAPIError::UnexpectedError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+                log_error_chain(&self, Level::ERROR);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Unexpected error".to_string(),
+                )
             }
             AuthAPIError::MissingToken => {
-                (StatusCode::BAD_REQUEST, "Missing token")
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::BAD_REQUEST, "Missing token".to_string())
             }
             AuthAPIError::InvalidToken => {
-                (StatusCode::UNAUTHORIZED, "Invalid token")
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::UNAUTHORIZED, "Invalid token".to_string())
             }
         };
         let body = Json(ErrorResponse {
-            error: error_message.to_string(),
+            error: error_message,
         });
         (status, body).into_response()
     }
@@ -68,23 +80,31 @@ impl IntoResponse for AuthAPIError {
 
 impl IntoResponse for ProjectAPIError {
     fn into_response(self) -> Response {
-        log_error_chain(&self);
-        let (status, error_message) = match self {
-            ProjectAPIError::UnexpectedError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+        let (status, error_message) = match &self {
+            ProjectAPIError::AuthenticationError(auth_error) => {
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::UNAUTHORIZED, format!("{auth_error}"))
             }
-            ProjectAPIError::InvalidName(_) => {
-                (StatusCode::BAD_REQUEST, "Invalid project name")
+            ProjectAPIError::UnexpectedError(_) => {
+                log_error_chain(&self, Level::ERROR);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Unexpected error".to_string(),
+                )
+            }
+            ProjectAPIError::ValidationError(message) => {
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::BAD_REQUEST, format!("{message}"))
             }
         };
         let body = Json(ErrorResponse {
-            error: error_message.to_string(),
+            error: error_message,
         });
         (status, body).into_response()
     }
 }
 
-fn log_error_chain(e: &(dyn Error + 'static)) {
+fn log_error_chain(e: &(dyn Error + 'static), debug_level: Level) {
     let separator =
         "\n-----------------------------------------------------------------------------------\n";
     let mut report = format!("{}{:?}\n", separator, e);
@@ -95,7 +115,13 @@ fn log_error_chain(e: &(dyn Error + 'static)) {
         current = cause.source();
     }
     report = format!("{}\n{}", report, separator);
-    tracing::error!("{}", report);
+    match debug_level {
+        Level::ERROR => tracing::error!("{}", report),
+        Level::WARN => tracing::warn!("{}", report),
+        Level::INFO => tracing::info!("{}", report),
+        Level::DEBUG => tracing::debug!("{}", report),
+        Level::TRACE => tracing::trace!("{}", report),
+    }
 }
 
 pub struct Application {

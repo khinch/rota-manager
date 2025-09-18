@@ -1,6 +1,6 @@
 use reqwest::Client;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tokio::sync::RwLock;
 
 use rota_manager::{
@@ -17,7 +17,7 @@ use rota_manager::{
     utils::{
         constants::{
             prod, DATABASE_URL, POSTMARK_AUTH_TOKEN,
-            POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
+            POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME, TWO_FA_CODE_REGEX,
         },
         tracing::init_tracing,
     },
@@ -26,6 +26,7 @@ use rota_manager::{
 
 #[tokio::main]
 async fn main() {
+    LazyLock::force(&TWO_FA_CODE_REGEX);
     color_eyre::install().expect("Failed to install color_eyre");
     init_tracing().expect("Failed to initialise tracing");
 

@@ -97,21 +97,28 @@ async fn should_return_422_if_malformed_request(app: &mut TestApp) {
 #[tokio::test]
 async fn should_return_400_if_invalid_input(app: &mut TestApp) {
     let test_cases = [
-        serde_json::json!({
-            "name": ""
-        }),
-        serde_json::json!({
-            "name": "a".repeat(256)
-        }),
+        (
+            serde_json::json!({
+                "name": ""
+            }),
+            "Validation error: Project name cannot be empty",
+        ),
+        (
+            serde_json::json!({
+                "name": "a".repeat(256)
+            }),
+            "Validation error: Max name length is 255 characters",
+        ),
     ];
 
-    for test_case in test_cases.iter() {
-        let response = app.post_projects_new(&test_case).await;
+    for (body, expected_error) in test_cases.iter() {
+        let _email = get_session(app, false).await;
+        let response = app.post_projects_new(body).await;
         assert_eq!(
             response.status().as_u16(),
-            500, // TODO error handling overhaul
+            400,
             "Should fail with HTTP400 for input: {}",
-            test_case
+            body
         );
         assert_eq!(
             response
@@ -119,8 +126,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 .await
                 .expect("Could not deserialise response body to ErrorResponse")
                 .error,
-            // "Invalid project name".to_owned()
-            "Unexpected error"
+            expected_error.to_string()
         );
     }
 }
@@ -135,7 +141,7 @@ async fn should_return_401_if_not_authenticated(app: &mut TestApp) {
     let response = app.post_projects_new(&request).await;
     assert_eq!(
         response.status().as_u16(),
-        500, // TODO error handling overhaul
+        401,
         "Should return 401 for unauthenticated requests",
     );
 }

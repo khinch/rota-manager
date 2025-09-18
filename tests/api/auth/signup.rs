@@ -86,35 +86,35 @@ async fn should_return_201_for_valid_requests(app: &mut TestApp) {
 #[tokio::test]
 async fn should_return_400_if_invalid_input(app: &mut TestApp) {
     let test_cases = [
-        serde_json::json!({
+        (serde_json::json!({
             "email": "foobar.com",
             "password": "abcd1234",
             "requires2FA": true
-        }),
-        serde_json::json!({
+        }), "Validation error: Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address"),
+        (serde_json::json!({
             "email": "",
             "password": "abcd1234",
             "requires2FA": true
-        }),
-        serde_json::json!({
+        }), "Validation error: Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address"),
+        (serde_json::json!({
             "email": "a@b.com",
             "password": "abcd123",
             "requires2FA": true
-        }),
-        serde_json::json!({
+        }), "Validation error: Password too short. Should be 8 to 128 characters."),
+        (serde_json::json!({
             "email": "foo@bar.com",
             "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
             "requires2FA": false
-        }),
+        }), "Validation error: Password too long. Should be 8 to 128 characters."),
     ];
 
-    for test_case in test_cases.iter() {
-        let response = app.post_signup(&test_case).await;
+    for (body, error_message) in test_cases.iter() {
+        let response = app.post_signup(&body).await;
         assert_eq!(
             response.status().as_u16(),
             400,
             "Should fail with HTTP400 for input: {}",
-            test_case
+            body
         );
         assert_eq!(
             response
@@ -122,7 +122,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 .await
                 .expect("Could not deserialise response body to ErrorResponse")
                 .error,
-            "Invalid input".to_owned()
+            error_message.to_string()
         );
     }
 }

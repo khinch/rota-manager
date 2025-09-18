@@ -33,18 +33,6 @@ pub enum UserStoreError {
     UnexpectedError(#[source] Report),
 }
 
-impl PartialEq for UserStoreError {
-    fn eq(&self, other: &Self) -> bool {
-        matches!(
-            (self, other),
-            (Self::UserAlreadyExists, Self::UserAlreadyExists)
-                | (Self::UserNotFound, Self::UserNotFound)
-                | (Self::InvalidCredentials, Self::InvalidCredentials)
-                | (Self::UnexpectedError(_), Self::UnexpectedError(_))
-        )
-    }
-}
-
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
     async fn add_token(&mut self, token: &Secret<String>) -> Result<()>;

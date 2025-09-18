@@ -128,40 +128,51 @@ async fn should_return_422_if_malformed_credentials(app: &mut TestApp) {
 #[tokio::test]
 async fn should_return_400_if_invalid_input(app: &mut TestApp) {
     let test_cases = [
-        serde_json::json!({
-            "email": "foobar.com",
-            "password": "abcd1234",
-        }),
-        serde_json::json!({
-            "email": "",
-            "password": "abcd1234",
-        }),
-        serde_json::json!({
-            "email": "a@b.com",
-            "password": "abcd123",
-        }),
-        serde_json::json!({
-            "email": "a@b.com",
-            "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
-        }),
+        (
+            serde_json::json!({
+                "email": "foobar.com",
+                "password": "abcd1234",
+            }),
+            "Validation error: Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address",
+        ),
+        (
+            serde_json::json!({
+                "email": "",
+                "password": "abcd1234",
+            }),
+            "Validation error: Invalid email address. For more details, see the spec: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address",
+        ),
+        (
+            serde_json::json!({
+                "email": "a@b.com",
+                "password": "abcd123",
+            }),
+            "Validation error: Password too short. Should be 8 to 128 characters.",
+        ),
+        (
+            serde_json::json!({
+                "email": "a@b.com",
+                "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
+            }),
+            "Validation error: Password too long. Should be 8 to 128 characters.",
+        ),
     ];
 
     for test_case in test_cases.iter() {
-        let response = app.post_login(&test_case).await;
+        let response = app.post_login(&test_case.0).await;
         assert_eq!(
             response.status().as_u16(),
             400,
             "Should fail with HTTP400 for input: {}",
-            test_case
+            test_case.0
         );
-        assert_eq!(
-            response
-                .json::<ErrorResponse>()
-                .await
-                .expect("Could not deserialise response body to ErrorResponse")
-                .error,
-            "Invalid input".to_owned()
-        );
+        let response_words = response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialise response body to ErrorResponse")
+            .error;
+
+        assert_eq!(response_words, test_case.1);
     }
 }
 

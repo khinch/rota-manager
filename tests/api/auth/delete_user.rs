@@ -36,8 +36,7 @@ async fn should_return_400_for_missing_token(app: &mut TestApp) {
     let delete_user_response = app.delete_user().await;
     assert_eq!(
         app.delete_user().await.status().as_u16(),
-        // 400, TODO
-        500,
+        400,
         "Unexpected response to unauthenticated delete user request: {:?}",
         delete_user_response
     );

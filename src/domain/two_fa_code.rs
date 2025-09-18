@@ -1,17 +1,18 @@
-use color_eyre::eyre::{eyre, Result};
+use super::ValidationError;
 use secrecy::{ExposeSecret, Secret};
+
+use crate::utils::constants::TWO_FA_CODE_REGEX;
 
 #[derive(Clone, Debug)]
 pub struct TwoFACode(Secret<String>);
 
 impl TwoFACode {
-    pub fn parse(code: Secret<String>) -> Result<Self> {
-        let regex = regex::Regex::new(r"^\d{6}$")
-            .expect("Regex for TwoFACode parser is invalid");
+    pub fn parse(code: Secret<String>) -> Result<Self, ValidationError> {
+        let regex = &TWO_FA_CODE_REGEX;
         if regex.is_match(code.expose_secret()) {
             Ok(Self(code))
         } else {
-            Err(eyre!("Code is invalid"))
+            Err(ValidationError::new("2FA code is not valid".to_string()))
         }
     }
 }
@@ -60,7 +61,7 @@ mod tests {
             let result =
                 TwoFACode::parse(Secret::new(invalid_code.to_string()));
             let error = result.expect_err(invalid_code);
-            assert_eq!(error.to_string(), "Code is invalid");
+            assert_eq!(error.as_ref(), "2FA code is not valid");
         }
     }
 }

@@ -19,18 +19,18 @@ pub async fn verify_2fa(
 ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     let email = match Email::parse(Secret::new(request.email)) {
         Ok(email) => email,
-        Err(_) => return (jar, Err(AuthAPIError::ValidationError)),
+        Err(e) => return (jar, Err(AuthAPIError::ValidationError(e))),
     };
 
     let login_attempt_id =
         match LoginAttemptId::parse(Secret::new(request.login_attempt_id)) {
             Ok(login_attempt_id) => login_attempt_id,
-            Err(_) => return (jar, Err(AuthAPIError::ValidationError)),
+            Err(e) => return (jar, Err(AuthAPIError::ValidationError(e))),
         };
 
     let two_fa_code = match TwoFACode::parse(Secret::new(request.two_fa_code)) {
         Ok(two_fa_code) => two_fa_code,
-        Err(_) => return (jar, Err(AuthAPIError::ValidationError)),
+        Err(e) => return (jar, Err(AuthAPIError::ValidationError(e))),
     };
 
     let (expected_login_attempt_id, expected_two_fa_code) =

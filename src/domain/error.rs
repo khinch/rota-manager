@@ -3,12 +3,12 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AuthAPIError {
-    #[error("Missing token")]
-    MissingToken,
     #[error("Invalid credentials")]
     IncorrectCredentials,
     #[error("Invalid token")]
     InvalidToken,
+    #[error("Missing token")]
+    MissingToken,
     #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
     #[error("User already exists")]
@@ -16,13 +16,29 @@ pub enum AuthAPIError {
     #[error("User not found")]
     UserNotFound,
     #[error("Validation error")]
-    ValidationError,
+    ValidationError(#[from] ValidationError),
 }
 
 #[derive(Debug, Error)]
 pub enum ProjectAPIError {
-    #[error("Invalid project name")]
-    InvalidName(#[source] Report),
+    #[error("Authentication error")]
+    AuthenticationError(#[from] AuthAPIError),
     #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
+    #[error("Validation error")]
+    ValidationError(#[from] ValidationError),
+}
+
+#[derive(Debug, Error)]
+#[error("Validation error: {0}")]
+pub struct ValidationError(String);
+
+impl ValidationError {
+    pub fn new(message: String) -> Self {
+        Self(message)
+    }
+
+    pub fn as_ref(&self) -> &String {
+        &self.0
+    }
 }

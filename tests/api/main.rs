@@ -1,11 +1,3 @@
-// mod delete_user;
 mod auth;
 mod helpers;
-// mod login;
-// mod logout;
-// mod projects_list;
-// mod projects_new;
-// mod signup;
-// mod verify_2fa;
-// mod verify_token;
 mod projects;

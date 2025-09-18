@@ -10,9 +10,8 @@ pub async fn verify_token(
     Json(request): Json<VerifyTokenRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
     let token = Secret::new(request.token);
-    let _claims = validate_token(&token, state.banned_token_store.clone())
-        .await
-        .map_err(|_| AuthAPIError::InvalidToken)?;
+    let _claims =
+        validate_token(&token, state.banned_token_store.clone()).await?;
 
     Ok(StatusCode::OK.into_response())
 }

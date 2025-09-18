@@ -76,22 +76,15 @@ fn generate_auth_token(
 pub async fn validate_token(
     token: &Secret<String>,
     banned_token_store: BannedTokenStoreType,
-) -> Result<Claims> {
+) -> Result<Claims, AuthAPIError> {
     banned_token_store
         .read()
         .await
         .check_token(token)
         .await
         .map_err(|e| match e {
-            BannedTokenStoreError::BannedToken => {
-                jsonwebtoken::errors::Error::from(
-                    jsonwebtoken::errors::ErrorKind::InvalidToken,
-                )
-            }
-            //TODO: Potentially misleading: token store errors could propagate as token validity errors
-            _ => jsonwebtoken::errors::Error::from(
-                jsonwebtoken::errors::ErrorKind::InvalidToken,
-            ),
+            BannedTokenStoreError::BannedToken => AuthAPIError::InvalidToken,
+            e => AuthAPIError::UnexpectedError(eyre!(e)),
         })?;
 
     decode::<Claims>(
@@ -100,7 +93,8 @@ pub async fn validate_token(
         &Validation::default(),
     )
     .map(|data| data.claims)
-    .wrap_err("failed to decode token")
+    .map_err(|_| AuthAPIError::InvalidToken)
+    // .wrap_err("failed to decode token")
 }
 
 // Create JWT auth token by encoding claims using the JWT secret
@@ -111,7 +105,7 @@ fn create_token(claims: &Claims) -> Result<Secret<String>> {
         &claims,
         &EncodingKey::from_secret(JWT_SECRET.expose_secret().as_bytes()),
     )
-    .wrap_err("failed to create token")?;
+    .map_err(|e| eyre!(AuthAPIError::UnexpectedError(e.into())))?;
 
     Ok(Secret::new(token_string))
 }
@@ -121,10 +115,10 @@ fn create_token(claims: &Claims) -> Result<Secret<String>> {
 pub async fn get_claims(
     jar: &CookieJar,
     banned_token_store: &BannedTokenStoreType,
-) -> Result<Claims> {
+) -> Result<Claims, AuthAPIError> {
     let cookie = match jar.get(JWT_COOKIE_NAME) {
         Some(cookie) => cookie,
-        None => return Err(eyre!(AuthAPIError::MissingToken)),
+        None => return Err(AuthAPIError::MissingToken),
     };
 
     let token = Secret::new(cookie.value().to_string());

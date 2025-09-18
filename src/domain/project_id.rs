@@ -1,4 +1,4 @@
-use color_eyre::eyre::{Context, Result};
+use super::ValidationError;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -6,9 +6,10 @@ use uuid::Uuid;
 pub struct ProjectId(Uuid);
 
 impl ProjectId {
-    pub fn parse(id: &str) -> Result<Self> {
-        let parsed =
-            uuid::Uuid::try_parse(id).wrap_err("Invalid project ID")?;
+    pub fn parse(id: &str) -> Result<Self, ValidationError> {
+        let parsed = uuid::Uuid::try_parse(id).map_err(|e| {
+            ValidationError::new(format!("Invalid project ID: {e}"))
+        })?;
         Ok(Self(parsed))
     }
 
@@ -45,5 +46,5 @@ fn test_invalid_ids() {
     let invalid_id = "5b5b32e3a66cc-45bc-82d1-d41582139f1e";
     let result = ProjectId::parse(invalid_id);
     let error = result.expect_err(invalid_id);
-    assert_eq!(error.to_string(), "Invalid project ID");
+    assert_eq!(error.as_ref(), "Invalid project ID: failed to parse a UUID");
 }

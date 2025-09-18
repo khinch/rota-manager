@@ -13,9 +13,9 @@ pub async fn signup(
     Json(request): Json<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
     let email = Email::parse(Secret::new(request.email))
-        .map_err(|_| AuthAPIError::ValidationError)?;
+        .map_err(|e| AuthAPIError::ValidationError(e))?;
     let password = Password::parse(request.password)
-        .map_err(|_| AuthAPIError::ValidationError)?;
+        .map_err(|e| AuthAPIError::ValidationError(e))?;
 
     let user = User::new(email, password, request.requires_2fa);
 

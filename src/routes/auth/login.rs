@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
+use color_eyre::eyre::eyre;
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 
@@ -17,39 +18,26 @@ pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(request): Json<LoginRequest>,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
-) {
-    let email = match Email::parse(Secret::new(request.email)) {
-        Ok(email) => email,
-        Err(_) => return (jar, Err(AuthAPIError::ValidationError)),
-    };
-
-    let password = match Password::parse(request.password) {
-        Ok(password) => password,
-        Err(_) => return (jar, Err(AuthAPIError::ValidationError)),
-    };
-
+) -> Result<(StatusCode, CookieJar, Json<LoginResponse>), AuthAPIError> {
+    let email = Email::parse(Secret::new(request.email))?;
+    let password = Password::parse(request.password)?;
     let user_store = &state.user_store.read().await;
 
-    match user_store.validate_user(&email, &password).await {
-        Ok(()) => (),
-        Err(UserStoreError::InvalidCredentials) => {
-            return (jar, Err(AuthAPIError::IncorrectCredentials))
-        }
-        Err(UserStoreError::UserNotFound) => {
-            return (jar, Err(AuthAPIError::IncorrectCredentials))
-        }
-        Err(err) => {
-            return (jar, Err(AuthAPIError::UnexpectedError(err.into())))
-        }
-    }
+    user_store
+        .validate_user(&email, &password)
+        .await
+        .map_err(|e| match e {
+            UserStoreError::InvalidCredentials
+            | UserStoreError::UserNotFound => {
+                AuthAPIError::IncorrectCredentials
+            }
+            _ => AuthAPIError::UnexpectedError(eyre!(e)),
+        })?;
 
-    let user = match user_store.get_user(&email).await {
-        Ok(user) => user,
-        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
-    };
+    let user = user_store
+        .get_user(&email)
+        .await
+        .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
 
     match user.requires_2fa {
         true => handle_2fa(&user.email, &state, jar).await,
@@ -68,10 +56,7 @@ async fn handle_2fa(
     email: &Email,
     state: &AppState,
     jar: CookieJar,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
-) {
+) -> Result<(StatusCode, CookieJar, Json<LoginResponse>), AuthAPIError> {
     let login_attempt_id = LoginAttemptId::default();
     let two_fa_code = TwoFACode::default();
 
@@ -83,9 +68,7 @@ async fn handle_2fa(
         .await
     {
         Ok(()) => (),
-        Err(err) => {
-            return (jar, Err(AuthAPIError::UnexpectedError(err.into())))
-        }
+        Err(e) => return Err(AuthAPIError::UnexpectedError(eyre!(e))),
     }
 
     match state
@@ -98,7 +81,7 @@ async fn handle_2fa(
         .await
     {
         Ok(()) => (),
-        Err(err) => return (jar, Err(AuthAPIError::UnexpectedError(err))),
+        Err(e) => return Err(AuthAPIError::UnexpectedError(e)),
     }
 
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
@@ -108,7 +91,7 @@ async fn handle_2fa(
         ),
     }));
 
-    (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))
+    Ok((StatusCode::PARTIAL_CONTENT, jar, response))
 }
 
 #[tracing::instrument(name = "Handling login without 2FA", skip_all)]
@@ -116,23 +99,17 @@ async fn handle_no_2fa(
     email: &Email,
     user_id: &UserId,
     jar: CookieJar,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
-) {
-    let auth_cookie = match generate_auth_cookie(&email, &user_id) {
-        Ok(cookie) => cookie,
-        Err(err) => {
-            return (jar, Err(AuthAPIError::UnexpectedError(err.into())))
-        }
-    };
+) -> Result<(StatusCode, CookieJar, Json<LoginResponse>), AuthAPIError> {
+    let auth_cookie = generate_auth_cookie(&email, &user_id)
+        .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
 
     let updated_jar = jar.add(auth_cookie);
 
-    (
+    Ok((
+        StatusCode::OK,
         updated_jar,
-        Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))),
-    )
+        Json(LoginResponse::RegularAuth),
+    ))
 }
 
 #[derive(Debug, Serialize)]

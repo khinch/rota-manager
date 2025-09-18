@@ -1,7 +1,11 @@
 use dotenvy::dotenv;
 use lazy_static::lazy_static;
+use regex::Regex;
 use secrecy::Secret;
-use std::env as std_env;
+use std::{env as std_env, sync::LazyLock};
+
+pub static TWO_FA_CODE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\d{6}$").expect("2FA regex is invalid"));
 
 lazy_static! {
     pub static ref JWT_SECRET: Secret<String> = set_token();

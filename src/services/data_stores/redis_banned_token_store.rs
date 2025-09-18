@@ -51,11 +51,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
         match self.conn.write().await.exists(&key) {
             Ok(true) => Err(BannedTokenStoreError::BannedToken),
             Ok(false) => Ok(()),
-            Err(e) => {
-                Err(eyre!(e)
-                    .wrap_err("failed to check if token exists in Redis"))
-                .map_err(BannedTokenStoreError::UnexpectedError)
-            }
+            Err(e) => Err(BannedTokenStoreError::UnexpectedError(eyre!(e))),
         }
     }
 }
