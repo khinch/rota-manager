@@ -147,14 +147,14 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 "email": "a@b.com",
                 "password": "abcd123",
             }),
-            "Validation error: Password too short. Should be 8 to 128 characters.",
+            "Validation error: Password too short. Should be 8 to 64 characters.",
         ),
         (
             serde_json::json!({
                 "email": "a@b.com",
-                "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
+                "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
             }),
-            "Validation error: Password too long. Should be 8 to 128 characters.",
+            "Validation error: Password too long. Should be 8 to 64 characters.",
         ),
     ];
 

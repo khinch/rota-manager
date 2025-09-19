@@ -9,6 +9,7 @@ mod project_name;
 mod two_fa_code;
 mod user;
 mod user_id;
+mod user_password_hash;
 
 pub use data_stores::*;
 pub use email::*;
@@ -21,3 +22,4 @@ pub use project_name::*;
 pub use two_fa_code::*;
 pub use user::*;
 pub use user_id::*;
+pub use user_password_hash::*;
