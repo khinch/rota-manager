@@ -23,6 +23,10 @@ pub enum AuthAPIError {
 pub enum ProjectAPIError {
     #[error("Authentication error")]
     AuthenticationError(#[from] AuthAPIError),
+    #[error("Resource with ID not found: {0}")]
+    IDNotFoundError(uuid::Uuid),
+    #[error("Resource with ID already exists: {0}")]
+    IDExistsError(uuid::Uuid),
     #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
     #[error("Validation error")]

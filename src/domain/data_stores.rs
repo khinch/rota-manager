@@ -1,6 +1,6 @@
 use super::{
-    Email, LoginAttemptId, Password, ProjectId, ProjectName, TwoFACode, User,
-    UserId,
+    Email, LoginAttemptId, Member, MemberId, Password, ProjectId, ProjectName,
+    TwoFACode, User, UserId,
 };
 use color_eyre::eyre::{Report, Result};
 use secrecy::Secret;
@@ -102,20 +102,54 @@ pub trait ProjectStore {
     async fn get_project_list(
         &mut self,
         user_id: &UserId,
-    ) -> Result<Vec<(ProjectId, ProjectName)>>;
+    ) -> Result<Vec<(ProjectId, ProjectName)>, ProjectStoreError>;
     async fn add_project(
         &mut self,
         user_id: &UserId,
         project_id: &ProjectId,
         project_name: &ProjectName,
-    ) -> Result<()>;
-    async fn delete_projects(&mut self, user_id: &UserId) -> Result<()>;
+    ) -> Result<(), ProjectStoreError>;
+    async fn delete_projects(
+        &mut self,
+        user_id: &UserId,
+    ) -> Result<(), ProjectStoreError>;
+    async fn add_member(
+        &mut self,
+        user_id: &UserId,
+        member: &Member,
+    ) -> Result<(), ProjectStoreError>;
+    async fn get_member(
+        &mut self,
+        user_id: &UserId,
+        member_id: &MemberId,
+    ) -> Result<Member, ProjectStoreError>;
+    async fn update_member(
+        &mut self,
+        user_id: &UserId,
+        member: &Member,
+    ) -> Result<(), ProjectStoreError>;
+    async fn get_members(
+        &mut self,
+        user_id: &UserId,
+        project_id: &ProjectId,
+    ) -> Result<Vec<Member>, ProjectStoreError>;
+    async fn delete_members(
+        &mut self,
+        user_id: &UserId,
+        project_id: &ProjectId,
+    ) -> Result<(), ProjectStoreError>;
 }
 
 #[derive(Debug, Error)]
 pub enum ProjectStoreError {
+    #[error("Member ID exists")]
+    MemberIDExists,
+    #[error("Member ID not found")]
+    MemberIDNotFound,
     #[error("Project ID exists")]
     ProjectIDExists,
+    #[error("Project ID not found")]
+    ProjectIDNotFound,
     #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
 }
@@ -124,7 +158,10 @@ impl PartialEq for ProjectStoreError {
     fn eq(&self, other: &Self) -> bool {
         matches!(
             (self, other),
-            (Self::ProjectIDExists, Self::ProjectIDExists)
+            (Self::MemberIDExists, Self::MemberIDExists)
+                | (Self::MemberIDNotFound, Self::MemberIDNotFound)
+                | (Self::ProjectIDExists, Self::ProjectIDExists)
+                | (Self::ProjectIDNotFound, Self::ProjectIDNotFound)
                 | (Self::UnexpectedError(_), Self::UnexpectedError(_))
         )
     }
