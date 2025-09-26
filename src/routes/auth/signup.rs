@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{AuthAPIError, Email, Password, User, UserStoreError},
+    domain::{
+        AuthAPIError, Email, Password, User, UserPasswordHash, UserStoreError,
+    },
 };
 
 #[tracing::instrument(name = "Signup", skip_all)]
@@ -14,10 +16,15 @@ pub async fn signup(
 ) -> Result<impl IntoResponse, AuthAPIError> {
     let email = Email::parse(Secret::new(request.email))
         .map_err(|e| AuthAPIError::ValidationError(e))?;
+
     let password = Password::parse(request.password)
         .map_err(|e| AuthAPIError::ValidationError(e))?;
 
-    let user = User::new(email, password, request.requires_2fa);
+    let hash = UserPasswordHash::from_password(password)
+        .await
+        .map_err(|e| AuthAPIError::UnexpectedError(e))?;
+
+    let user = User::new(email, hash, request.requires_2fa);
 
     {
         let mut user_store = state.user_store.write().await;

@@ -128,7 +128,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"email\": \"set by script\",\n    \"password\": \"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678\",\n    \"requires2FA\": false\n}",
+									"raw": "{\n    \"email\": \"set by script\",\n    \"password\": \"1234567890123456789012345678901234567890123456789012345678901234\",\n    \"requires2FA\": false\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -477,7 +477,7 @@
 											"",
 											"pm.test(\"Response message is correct\", function () {",
 											"    const jsonData = pm.response.json();",
-											"    pm.expect(jsonData.error).to.eql('Validation error: Password too short. Should be 8 to 128 characters.');",
+											"    pm.expect(jsonData.error).to.eql('Validation error: Password too short. Should be 8 to 64 characters.');",
 											"});"
 										],
 										"type": "text/javascript",
@@ -543,7 +543,7 @@
 											"",
 											"pm.test(\"Response message is correct\", function () {",
 											"    const jsonData = pm.response.json();",
-											"    pm.expect(jsonData.error).to.eql('Validation error: Password too long. Should be 8 to 128 characters.');",
+											"    pm.expect(jsonData.error).to.eql('Validation error: Password too long. Should be 8 to 64 characters.');",
 											"});"
 										],
 										"type": "text/javascript",
@@ -565,7 +565,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"email\": \"set by script\",\n    \"password\": \"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\",\n    \"requires2FA\": false\n}",
+									"raw": "{\n    \"email\": \"set by script\",\n    \"password\": \"12345678901234567890123456789012345678901234567890123456789012345\",\n    \"requires2FA\": false\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -708,7 +708,7 @@
 											"",
 											"pm.test(\"Response message is correct\", function () {",
 											"    const jsonData = pm.response.json();",
-											"    pm.expect(jsonData.error).to.eql('Validation error: Password too short. Should be 8 to 128 characters.');",
+											"    pm.expect(jsonData.error).to.eql('Validation error: Password too short. Should be 8 to 64 characters.');",
 											"});"
 										],
 										"type": "text/javascript",
@@ -2414,7 +2414,24 @@
 											"",
 											"pm.test(\"Response message is correct\", function () {",
 											"    const jsonData = pm.response.json();",
-											"    pm.expect(jsonData.error).to.eql('Invalid token');",
+											"    pm.expect(jsonData.error).to.eql('Missing token');",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const host = pm.environment.get(\"host\");",
+											"const jar = pm.cookies.jar();",
+											"",
+											"jar.unset(host, 'jwt', function (error) {",
+											"  if (error) {",
+											"    console.error(error);",
+											"  }",
 											"});"
 										],
 										"type": "text/javascript",
@@ -2432,6 +2449,70 @@
 									"raw": "{{host}}{{project_list_path}}",
 									"host": [
 										"{{host}}{{project_list_path}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Signup - Success",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"let uuid = require('uuid');",
+											"let email = `${uuid.v4()}@testwebsitepleaseignore.uk`;",
+											"pm.environment.set(\"random_email\", email);",
+											"console.log(`Email: ${email}`);"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201); ",
+											"});",
+											"",
+											"pm.test(\"Response message is correct\", function () {",
+											"    const jsonData = pm.response.json();",
+											"    pm.expect(jsonData.message).to.eql('User created successfully');",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{random_email}}\",\n    \"password\": \"password\",\n    \"requires2FA\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}{{signup_path}}",
+									"host": [
+										"{{host}}{{signup_path}}"
 									]
 								}
 							},
@@ -2492,6 +2573,130 @@
 							"response": []
 						},
 						{
+							"name": "POST New Project 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"function isUUID(str) {",
+											"    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(str);",
+											"}",
+											"",
+											"pm.test(\"Response message is correct\", function () {",
+											"    const jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql('a');",
+											"    pm.expect(isUUID(jsonData.id)).to.be.true;",
+											"    pm.environment.set(\"project_1_uuid\", jsonData.id);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"a\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}{{new_project_path}}",
+									"host": [
+										"{{host}}{{new_project_path}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST New Project 2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"function isUUID(str) {",
+											"    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(str);",
+											"}",
+											"",
+											"pm.test(\"Response message is correct\", function () {",
+											"    const jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql('012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234');",
+											"    pm.expect(isUUID(jsonData.id)).to.be.true;",
+											"    pm.environment.set(\"project_2_uuid\", jsonData.id);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}{{new_project_path}}",
+									"host": [
+										"{{host}}{{new_project_path}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "GET Project List",
 							"event": [
 								{
@@ -2535,6 +2740,67 @@
 									"raw": "{{host}}{{project_list_path}}",
 									"host": [
 										"{{host}}{{project_list_path}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DELETE delete-user - success",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200); ",
+											"});",
+											"",
+											"pm.test(\"Response message is correct\", function () {",
+											"    const jsonData = pm.response.json();",
+											"    pm.expect(jsonData.message).to.eql(`User deleted: ${pm.environment.get(\"random_email\")}`);",
+											"});",
+											"",
+											"const host = pm.environment.get(\"host\");",
+											"const jar = pm.cookies.jar();",
+											"",
+											"jar.unset(host, 'jwt', function (error) {",
+											"  if (error) {",
+											"    console.error(error);",
+											"  }",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}{{delete_user_path}}",
+									"host": [
+										"{{host}}{{delete_user_path}}"
 									]
 								}
 							},

@@ -54,7 +54,7 @@ async fn should_return_201_for_valid_requests(app: &mut TestApp) {
         }),
         serde_json::json!({
             "email": get_random_email(),
-            "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12",
+            "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12",
             "requires2FA": false
         }),
     ];
@@ -100,12 +100,12 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
             "email": "a@b.com",
             "password": "abcd123",
             "requires2FA": true
-        }), "Validation error: Password too short. Should be 8 to 128 characters."),
+        }), "Validation error: Password too short. Should be 8 to 64 characters."),
         (serde_json::json!({
             "email": "foo@bar.com",
-            "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
+            "password": "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123",
             "requires2FA": false
-        }), "Validation error: Password too long. Should be 8 to 128 characters."),
+        }), "Validation error: Password too long. Should be 8 to 64 characters."),
     ];
 
     for (body, error_message) in test_cases.iter() {
