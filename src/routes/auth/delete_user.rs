@@ -28,7 +28,33 @@ pub async fn delete_user(
         .await
         .delete_projects(&user_id)
         .await
-        .map_err(|e| AuthAPIError::UnexpectedError(e))?;
+        .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
+
+    let user_projects = state
+        .project_store
+        .write()
+        .await
+        .get_project_list(&user_id)
+        .await
+        .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
+
+    {
+        let mut project_store = state.project_store.write().await;
+        for (project_id, _project_name) in &user_projects {
+            project_store
+                .delete_members(&user_id, &project_id)
+                .await
+                .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
+        }
+    }
+
+    state
+        .project_store
+        .write()
+        .await
+        .delete_projects(&user_id)
+        .await
+        .map_err(|e| AuthAPIError::UnexpectedError(eyre!(e)))?;
 
     state
         .user_store

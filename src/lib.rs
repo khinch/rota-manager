@@ -17,11 +17,14 @@ use tracing::Level;
 
 use domain::{AuthAPIError, ProjectAPIError};
 pub mod routes;
-use crate::routes::{
-    auth::{delete_user, login, logout, signup, verify_2fa, verify_token},
-    projects::{get_project_list, new_project},
-};
 use crate::utils::tracing::*;
+use routes::{
+    auth::{delete_user, login, logout, signup, verify_2fa, verify_token},
+    projects::{
+        add_member, get_member, get_member_list_for_project, get_project_list,
+        new_project,
+    },
+};
 pub mod app_state;
 pub mod domain;
 pub mod services;
@@ -81,6 +84,14 @@ impl IntoResponse for AuthAPIError {
 impl IntoResponse for ProjectAPIError {
     fn into_response(self) -> Response {
         let (status, error_message) = match &self {
+            ProjectAPIError::IDNotFoundError(id) => {
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::NOT_FOUND, format!("{id}"))
+            }
+            ProjectAPIError::IDExistsError(id) => {
+                log_error_chain(&self, Level::DEBUG);
+                (StatusCode::CONFLICT, format!("{id}"))
+            }
             ProjectAPIError::AuthenticationError(auth_error) => {
                 log_error_chain(&self, Level::DEBUG);
                 (StatusCode::UNAUTHORIZED, format!("{auth_error}"))
@@ -154,6 +165,9 @@ impl Application {
             .route("/auth/delete-user", delete(delete_user))
             .route("/projects/new", post(new_project))
             .route("/projects/list", get(get_project_list))
+            .route("/projects/add-member", post(add_member))
+            .route("/projects/get-members", get(get_member_list_for_project))
+            .route("/projects/get-member", get(get_member))
             .with_state(app_state)
             .layer(cors)
             .layer(

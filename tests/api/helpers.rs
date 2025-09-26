@@ -1,4 +1,4 @@
-use reqwest::{cookie::Jar, Client, Response};
+use reqwest::{cookie::Jar, Client, Response, StatusCode};
 use rota_manager::{
     app_state::{
         AppState, BannedTokenStoreType, ProjectStoreType, TwoFACodeStoreType,
@@ -185,6 +185,36 @@ impl TestApp {
     pub async fn get_projects_list(&self) -> reqwest::Response {
         self.http_client
             .get(format!("{}/projects/list", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn post_add_member<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/projects/add-member", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_member(&self, member_id: &str) -> reqwest::Response {
+        self.http_client
+            .get(format!("{}/projects/get-member", &self.address))
+            .query(&[("memberId", member_id)])
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_members(&self, project_id: &str) -> reqwest::Response {
+        self.http_client
+            .get(format!("{}/projects/get-members", &self.address))
+            .query(&[("projectId", project_id)])
             .send()
             .await
             .expect("Failed to execute request")
@@ -425,11 +455,11 @@ pub async fn get_json_response_body(response: Response) -> Value {
     let body: Value = response
         .json()
         .await
-        .expect("failed to parse response body JSON: {response}");
+        .expect("failed to parse response body JSON");
     body
 }
 
-pub async fn _logout(app: &mut TestApp) {
+pub async fn logout(app: &mut TestApp) {
     assert_eq!(
         app.post_logout().await.status().as_u16(),
         200,
@@ -443,4 +473,25 @@ pub async fn delete_user(app: &mut TestApp) {
         200,
         "Failed to delete user"
     );
+}
+
+pub async fn add_member(
+    app: &mut TestApp,
+    name: &str,
+    project_id: &str,
+) -> String {
+    let response = app
+        .post_add_member(&serde_json::json!({
+            "memberName": name,
+            "projectId": project_id
+        }))
+        .await;
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = get_json_response_body(response).await;
+    body.get("memberId")
+        .expect("Failed to read memberId from JSON response")
+        .as_str()
+        .expect("Failed to create str from memberId field")
+        .to_owned()
 }
