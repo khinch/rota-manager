@@ -219,6 +219,23 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn put_member<Body>(
+        &self,
+        member_id: &str,
+        body: &Body,
+    ) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .put(format!("{}/projects/update-member", &self.address))
+            .json(body)
+            .query(&[("memberId", member_id)])
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
 }
 
 impl AsyncTestContext for TestApp {
