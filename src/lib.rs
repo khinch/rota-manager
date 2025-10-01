@@ -21,8 +21,8 @@ use crate::utils::tracing::*;
 use routes::{
     auth::{delete_user, login, logout, signup, verify_2fa, verify_token},
     projects::{
-        add_member, get_member, get_member_list_for_project, get_project_list,
-        new_project, update_member,
+        add_member, add_shift, get_member, get_member_list_for_project,
+        get_project_list, new_project, update_member,
     },
 };
 pub mod app_state;
@@ -169,6 +169,7 @@ impl Application {
             .route("/projects/get-members", get(get_member_list_for_project))
             .route("/projects/get-member", get(get_member))
             .route("/projects/update-member", put(update_member))
+            .route("/projects/shifts", post(add_shift))
             .with_state(app_state)
             .layer(cors)
             .layer(

@@ -1,6 +1,6 @@
 use super::{
     Email, LoginAttemptId, Member, MemberId, Password, ProjectId, ProjectName,
-    TwoFACode, User, UserId,
+    Shift, TwoFACode, User, UserId,
 };
 use color_eyre::eyre::{Report, Result};
 use secrecy::Secret;
@@ -138,6 +138,11 @@ pub trait ProjectStore {
         user_id: &UserId,
         project_id: &ProjectId,
     ) -> Result<(), ProjectStoreError>;
+    async fn add_shift(
+        &mut self,
+        user_id: &UserId,
+        shift: &Shift,
+    ) -> Result<(), ProjectStoreError>;
 }
 
 #[derive(Debug, Error)]
@@ -150,6 +155,8 @@ pub enum ProjectStoreError {
     ProjectIDExists,
     #[error("Project ID not found")]
     ProjectIDNotFound,
+    #[error("Shift ID exists")]
+    ShiftIdExists,
     #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
 }
