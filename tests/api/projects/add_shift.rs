@@ -1,6 +1,8 @@
 use crate::helpers::{
-    add_member, add_new_project, get_json_response_body, get_session, TestApp,
+    add_member, add_new_project, get_json_response_body, get_session, logout,
+    TestApp,
 };
+use rota_manager::ErrorResponse;
 use serde_json::json;
 use test_context::test_context;
 
@@ -51,14 +53,14 @@ async fn should_return_201_for_valid_requests(app: &mut TestApp) {
     });
 
     let requests = [
-        &serde_json::json!(
+        &json!(
         {
             "memberId": &member_id,
             "day": "Sunday",
             "startTime": 0,
             "endTime": 1440
         }),
-        &serde_json::json!(
+        &json!(
         {
             "memberId": &member_id,
             "day": "Saturday",
@@ -114,23 +116,42 @@ async fn should_return_201_for_valid_requests(app: &mut TestApp) {
     }
 }
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_422_if_malformed_request(app: &mut TestApp) {
     let _email = get_session(app, false).await;
     let project_id = add_new_project(app, "Foo").await;
+    let member_id = add_member(app, "Bar", &project_id).await;
 
     let test_cases = [
-        serde_json::json!({
-            "projectId": project_id
+        &json!(
+        {
+            "memberId": &member_id,
+            "day": "Sunday",
+            "startTime": 0,
         }),
-        serde_json::json!({
-            "memberName": "bar"
+        &json!(
+        {
+            "memberId": &member_id,
+            "day": "Saturday",
+            "endTime": 1
+        }),
+        &json!(
+        {
+            "memberId": &member_id,
+            "startTime": 0,
+            "endTime": 1
+        }),
+        &json!(
+        {
+            "day": "Saturday",
+            "startTime": 0,
+            "endTime": 1
         }),
     ];
 
     for test_case in test_cases.iter() {
-        let response = app.post_add_member(test_case).await;
+        let response = app.post_shift(test_case).await;
         assert_eq!(
             response.status().as_u16(),
             422,
@@ -138,40 +159,65 @@ async fn should_return_422_if_malformed_request(app: &mut TestApp) {
             test_case
         );
     }
-} */
+}
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_400_if_invalid_input(app: &mut TestApp) {
     let _email = get_session(app, false).await;
     let project_id = add_new_project(app, "Foo").await;
+    let member_id = add_member(app, "Bar", &project_id).await;
 
     let test_cases = [
         (
-            serde_json::json!({
-                "memberName": "",
-                "projectId": project_id
+            &json!({
+                "memberId": &member_id,
+                "day": "Sunday",
+                "startTime": 0,
+                "endTime": 1441
             }),
-            "Validation error: Member name cannot be empty",
+            "Validation error: Minute cannot be after midnight",
         ),
         (
-            serde_json::json!({
-                "memberName": "a".repeat(256),
-                "projectId": project_id
+            &json!({
+                "memberId": &member_id,
+                "day": "Sunday",
+                "startTime": -1,
+                "endTime": 1440
             }),
-            "Validation error: Max name length is 255 characters",
+            "Validation error: Minute cannot be before midnight",
         ),
         (
-            serde_json::json!({
-                "memberName": "foo",
-                "projectId": "ge9915f0-a4c2-48fb-977b-9f4f959c5729"
+            &json!({
+                "memberId": &member_id,
+                "day": "Sunday",
+                "startTime": 1440,
+                "endTime": 0
             }),
-            "Validation error: Invalid project ID: failed to parse a UUID",
+            "Validation error: Start time must be before end time",
+        ),
+        (
+            &json!({
+                "memberId": &member_id,
+                "day": "Funday",
+                "startTime": 1440,
+                "endTime": 0
+            }),
+            "Validation error: Invalid day",
+        ),
+        (
+            &json!({
+                "memberId": &member_id,
+                "day": "0",
+                "startTime": 1440,
+                "endTime": 0
+            }),
+            "Validation error: Invalid day",
         ),
     ];
 
     for (body, expected_error) in test_cases.iter() {
-        let response = app.post_add_member(body).await;
+        let response = app.post_shift(body).await;
         assert_eq!(
             response.status().as_u16(),
             400,
@@ -187,40 +233,45 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
             expected_error.to_string()
         );
     }
-} */
+}
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_401_if_not_authenticated(app: &mut TestApp) {
-    let request = serde_json::json!(
+    let request = json!(
         {
-            "memberName": "foo",
-            "projectId": "be9915f0-a4c2-48fb-977b-9f4f959c5729"
+            "memberId": "2a6af785-e170-4ab6-ac1f-691772640f31",
+            "day": "Sunday",
+            "startTime": 0,
+            "endTime": 1440
         }
     );
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         401,
         "Should return 401 for unauthenticated requests",
     );
-} */
+}
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_401_if_logged_out(app: &mut TestApp) {
     let _email = get_session(app, false).await;
     let project_id = add_new_project(app, "Foo").await;
+    let member_id = add_member(app, "Bar", &project_id).await;
 
-    let request = serde_json::json!(
+    let request = json!(
         {
-            "memberName": "foo",
-            "projectId": project_id
+            "memberId": &member_id,
+            "day": "Sunday",
+            "startTime": 0,
+            "endTime": 1440
         }
     );
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         201,
@@ -229,30 +280,33 @@ async fn should_return_401_if_logged_out(app: &mut TestApp) {
 
     logout(app).await;
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         401,
         "Should return 401 for unauthenticated requests",
     );
-} */
+}
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_404_if_project_id_owned_by_someone_else(
     app: &mut TestApp,
 ) {
     let _session_one_email = get_session(app, false).await;
     let project_id = add_new_project(app, "Foo").await;
+    let member_id = add_member(app, "Bar", &project_id).await;
 
     let request = serde_json::json!(
         {
-            "memberName": "foo",
-            "projectId": project_id
+            "memberId": &member_id,
+            "day": "Sunday",
+            "startTime": 0,
+            "endTime": 1440
         }
     );
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         201,
@@ -261,31 +315,34 @@ async fn should_return_404_if_project_id_owned_by_someone_else(
 
     let _session_two_email = get_session(app, false).await;
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         404,
         "Should return 404 for project IDs owned by someone else",
     );
-} */
+}
 
-/* #[test_context(TestApp)]
+#[test_context(TestApp)]
 #[tokio::test]
 async fn should_return_404_for_non_existent_project_id(app: &mut TestApp) {
     let _session_one_email = get_session(app, false).await;
-    let _project_id = add_new_project(app, "Foo").await;
+    let project_id = add_new_project(app, "Foo").await;
+    let _member_id = add_member(app, "bar", &project_id).await;
 
     let request = serde_json::json!(
         {
-            "memberName": "foo",
-            "projectId": "be9915f0-a4c2-48fb-977b-9f4f959c5729"
+            "memberId": "2a6af785-e170-4ab6-ac1f-691772640f31",
+            "day": "Sunday",
+            "startTime": 0,
+            "endTime": 1440
         }
     );
 
-    let response = app.post_add_member(&request).await;
+    let response = app.post_shift(&request).await;
     assert_eq!(
         response.status().as_u16(),
         404,
         "Should return 404 for non-existent project IDs",
     );
-} */
+}
