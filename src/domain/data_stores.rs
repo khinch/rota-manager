@@ -1,3 +1,5 @@
+use crate::domain::Project;
+
 use super::{
     Email, LoginAttemptId, Member, MemberId, Password, ProjectId, ProjectName,
     Shift, TwoFACode, User, UserId,
@@ -143,6 +145,11 @@ pub trait ProjectStore {
         user_id: &UserId,
         shift: &Shift,
     ) -> Result<(), ProjectStoreError>;
+    async fn get_project(
+        &mut self,
+        user_id: &UserId,
+        project_id: &ProjectId,
+    ) -> Result<Project, ProjectStoreError>;
 }
 
 #[derive(Debug, Error)]

@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+
 use color_eyre::eyre::{eyre, Result};
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::domain::{
-    Member, MemberId, MemberName, ProjectId, ProjectName, ProjectStore,
-    ProjectStoreError, Shift, UserId,
+    Day, Member, MemberId, MemberName, Minute, Project, ProjectId,
+    ProjectMember, ProjectName, ProjectStore, ProjectStoreError, Shift,
+    ShiftId, UserId,
 };
 
 pub struct PostgresProjectStore {
@@ -288,5 +292,104 @@ impl ProjectStore for PostgresProjectStore {
             e => ProjectStoreError::UnexpectedError(eyre!(e)),
         })?;
         Ok(())
+    }
+
+    #[tracing::instrument(
+        name = "Getting project details from PostreSQL",
+        skip_all
+    )]
+    async fn get_project(
+        &mut self,
+        user_id: &UserId,
+        project_id: &ProjectId,
+    ) -> Result<Project, ProjectStoreError> {
+        let project_row = sqlx::query!(
+            r#"
+            SELECT project_id, project_name
+            FROM projects_list
+            WHERE project_id = $1
+            AND user_id = $2
+            "#,
+            project_id.as_ref(),
+            user_id.as_ref()
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ProjectStoreError::ProjectIDNotFound,
+            err => ProjectStoreError::UnexpectedError(eyre!(err)),
+        })?;
+
+        let member_rows = sqlx::query!(
+            r#"
+                SELECT member_id, member_name
+                FROM members
+                WHERE project_id = $1
+            "#,
+            project_id.as_ref()
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
+
+        let mut member_map = HashMap::<uuid::Uuid, ProjectMember>::new();
+        for row in member_rows {
+            let member_id = MemberId::new(row.member_id);
+            let member_name = MemberName::parse(row.member_name)
+                .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
+            member_map.insert(
+                member_id.as_ref().to_owned(),
+                ProjectMember {
+                    member_id,
+                    member_name,
+                    shifts: Vec::new(),
+                },
+            );
+        }
+
+        let member_ids: Vec<Uuid> =
+            member_map.keys().map(|id| *id.as_ref()).collect();
+        if !member_ids.is_empty() {
+            let shift_rows = sqlx::query!(
+                r#"
+                    SELECT id, member_id, day, in_time, out_time
+                    FROM shifts
+                    WHERE member_id = ANY($1)
+               "#,
+                &member_ids
+            )
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
+
+            for row in shift_rows {
+                let member_id = MemberId::new(row.member_id);
+                if let Some(member) = member_map.get_mut(&member_id.as_ref()) {
+                    let shift = Shift {
+                        id: ShiftId::new(row.id),
+                        member_id: member_id.clone(),
+                        day: Day::try_from(row.day).map_err(|e| {
+                            ProjectStoreError::UnexpectedError(eyre!(e))
+                        })?,
+                        start_time: Minute::parse(row.in_time).map_err(
+                            |e| ProjectStoreError::UnexpectedError(eyre!(e)),
+                        )?,
+                        end_time: Minute::parse(row.out_time).map_err(|e| {
+                            ProjectStoreError::UnexpectedError(eyre!(e))
+                        })?,
+                    };
+                    member.shifts.push(shift);
+                }
+            }
+        }
+
+        let project = Project {
+            project_id: ProjectId::new(project_row.project_id),
+            project_name: ProjectName::parse(&project_row.project_name)
+                .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?,
+            members: member_map.into_values().collect(),
+        };
+
+        Ok(project)
     }
 }
