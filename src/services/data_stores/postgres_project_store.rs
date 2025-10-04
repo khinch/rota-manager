@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::domain::{
     Member, MemberId, MemberName, ProjectId, ProjectName, ProjectStore,
-    ProjectStoreError, UserId,
+    ProjectStoreError, Shift, UserId,
 };
 
 pub struct PostgresProjectStore {
@@ -258,6 +258,35 @@ impl ProjectStore for PostgresProjectStore {
         .await
         .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
 
+        Ok(())
+    }
+
+    #[tracing::instrument(name = "Adding shift to PostgreSQL", skip_all)]
+    async fn add_shift(
+        &mut self,
+        user_id: &UserId,
+        shift: &Shift,
+    ) -> Result<(), ProjectStoreError> {
+        let _member = self.get_member(&user_id, &shift.member_id).await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO shifts (id, member_id, day, in_time, out_time) VALUES ($1, $2, $3, $4, $5)
+            "#,
+            shift.id.as_ref() as &uuid::Uuid,
+            shift.member_id.as_ref() as &uuid::Uuid,
+            shift.day as i16,
+            shift.start_time.value_of(),
+            shift.end_time.value_of()
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
+                ProjectStoreError::ShiftIdExists
+            }
+            e => ProjectStoreError::UnexpectedError(eyre!(e)),
+        })?;
         Ok(())
     }
 }

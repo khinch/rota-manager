@@ -236,6 +236,18 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn post_shift<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/projects/shifts", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
 }
 
 impl AsyncTestContext for TestApp {

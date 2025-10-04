@@ -1,4 +1,5 @@
 mod add_member;
+mod add_shift;
 mod get_member;
 mod get_members;
 mod list;
