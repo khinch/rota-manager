@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT id, member_id, day, in_time, out_time\n                    FROM shifts\n                    WHERE member_id = ANY($1)\n               ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "member_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "day",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "in_time",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "out_time",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "785b6e1ea700f7e6275e8cfbde7cfcd9dcf457cbe6d8b753cf08b17bf830dcdc"
+}

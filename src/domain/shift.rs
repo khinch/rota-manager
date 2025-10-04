@@ -4,12 +4,15 @@ use std::fmt;
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Shift {
     pub id: ShiftId,
+    #[serde(skip_serializing)]
     pub member_id: MemberId,
     pub day: Day,
+    #[serde(rename = "startTime")]
     pub start_time: Minute,
+    #[serde(rename = "endTime")]
     pub end_time: Minute,
 }
 
