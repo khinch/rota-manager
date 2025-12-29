@@ -1,8 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{ProjectName, Shift};
+use crate::{
+    domain::{ProjectName, Shift},
+    id,
+};
 
-use super::{MemberId, MemberName, ProjectId};
+use super::{MemberId, MemberName};
+
+id!(ProjectId);
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Project {

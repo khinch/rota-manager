@@ -141,7 +141,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 "memberName": "foo",
                 "projectId": "ge9915f0-a4c2-48fb-977b-9f4f959c5729"
             }),
-            "Validation error: Invalid project ID: failed to parse a UUID",
+            "Validation error: Invalid ID: failed to parse a UUID",
         ),
     ];
 
