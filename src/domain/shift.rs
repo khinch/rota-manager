@@ -3,7 +3,6 @@ use crate::id;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-// use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Shift {
@@ -58,34 +57,6 @@ fn validate_shift(
 }
 
 id!(ShiftId);
-
-// #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-// pub struct ShiftId(Uuid);
-
-// impl ShiftId {
-//     pub fn parse(id: &str) -> Result<Self, ValidationError> {
-//         let parsed = uuid::Uuid::try_parse(id).map_err(|e| {
-//             ValidationError::new(format!("Invalid member ID: {e}"))
-//         })?;
-//         Ok(Self(parsed))
-//     }
-
-//     pub fn new(uuid: Uuid) -> Self {
-//         Self(uuid)
-//     }
-// }
-
-// impl Default for ShiftId {
-//     fn default() -> Self {
-//         Self(uuid::Uuid::new_v4())
-//     }
-// }
-
-// impl AsRef<Uuid> for ShiftId {
-//     fn as_ref(&self) -> &Uuid {
-//         &self.0
-//     }
-// }
 
 #[repr(i16)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -259,25 +230,6 @@ mod tests {
         assert_eq!(Minute::difference(&zero, &one), 1);
         assert_eq!(Minute::difference(&max, &zero), MINUTE_MAX);
     }
-
-    // #[test]
-    // fn test_valid_ids() {
-    //     let valid_id = "5e90ca28-e1ad-4795-a190-089959c16e0b";
-    //     let parsed = ShiftId::parse(valid_id).expect(valid_id);
-    //     assert_eq!(
-    //         parsed.as_ref().to_string(),
-    //         valid_id,
-    //         "ID does not match expected value"
-    //     );
-    // }
-
-    // #[test]
-    // fn test_invalid_ids() {
-    //     let invalid_id = "5b5b32e3a66cc-45bc-82d1-d41582139f1e";
-    //     let result = ShiftId::parse(invalid_id);
-    //     let error = result.expect_err(invalid_id);
-    //     assert_eq!(error.as_ref(), "Invalid ID: failed to parse a UUID");
-    // }
 
     #[test]
     fn test_shift_new() {

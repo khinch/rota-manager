@@ -1,7 +1,8 @@
-use super::{MemberName, ProjectId};
-use crate::id;
+use super::ProjectId;
+use crate::{id, name};
 
 id!(MemberId);
+name!(MemberName);
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct Member {

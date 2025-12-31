@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! id {
     ($name:ident) => {
-        // use crate::domain::error::ValidationError;
-
         #[derive(
             Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize,
         )]
