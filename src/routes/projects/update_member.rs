@@ -29,7 +29,7 @@ pub async fn update_member(
 {
     let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
     let member_id = MemberId::new(query_params.member_id);
-    let member_name = MemberName::parse(request.member_name)?;
+    let member_name = MemberName::parse(&request.member_name)?;
 
     let mut member = state
         .project_store

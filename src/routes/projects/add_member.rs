@@ -21,7 +21,7 @@ pub async fn add_member(
 
     let project_id = ProjectId::parse(&request.project_id)?;
 
-    let member_name = MemberName::parse(request.member_name)?;
+    let member_name = MemberName::parse(&request.member_name)?;
     let member = Member::new(project_id, member_name);
 
     state

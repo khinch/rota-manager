@@ -1,4 +1,7 @@
-use super::{Email, UserId, UserPasswordHash};
+use super::{Email, UserPasswordHash};
+use crate::id;
+
+id!(UserId);
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct User {
