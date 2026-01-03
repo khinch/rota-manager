@@ -101,7 +101,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
             serde_json::json!({
                 "name": ""
             }),
-            "Validation error: Project name cannot be empty",
+            "Validation error: Name cannot be empty",
         ),
         (
             serde_json::json!({

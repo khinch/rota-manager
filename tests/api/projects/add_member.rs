@@ -127,7 +127,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 "memberName": "",
                 "projectId": project_id
             }),
-            "Validation error: Member name cannot be empty",
+            "Validation error: Name cannot be empty",
         ),
         (
             serde_json::json!({

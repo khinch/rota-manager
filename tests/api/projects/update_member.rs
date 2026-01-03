@@ -113,7 +113,7 @@ async fn should_return_400_if_invalid_request_body(app: &mut TestApp) {
             serde_json::json!({
                 "memberName": "",
             }),
-            "Validation error: Member name cannot be empty",
+            "Validation error: Name cannot be empty",
         ),
         (
             serde_json::json!({
