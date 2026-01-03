@@ -4,15 +4,13 @@ use rota_manager::{
         AppState, BannedTokenStoreType, ProjectStoreType, TwoFACodeStoreType,
         UserStoreType,
     },
+    data_stores::{
+        PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
+        RedisTwoFACodeStore,
+    },
     domain::Email,
     get_postgres_pool, get_redis_client,
-    services::{
-        data_stores::{
-            PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
-            RedisTwoFACodeStore,
-        },
-        postmark_email_client::PostmarkEmailClient,
-    },
+    services::postmark_email_client::PostmarkEmailClient,
     utils::constants::{
         test, DATABASE_URL, POSTMARK_EMAIL_SENDER_ADDRESS, REDIS_HOST_NAME,
     },
