@@ -4,7 +4,7 @@ use color_eyre::eyre::eyre;
 use secrecy::Secret;
 
 use crate::{
-    domain::AuthAPIError,
+    routes::auth::AuthAPIError,
     utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
     AppState,
 };

@@ -1,5 +1,6 @@
 mod add_member;
 mod add_shift;
+mod error;
 mod get_member;
 mod get_members;
 mod get_project;
@@ -9,6 +10,7 @@ mod update_member;
 
 pub use add_member::add_member;
 pub use add_shift::add_shift;
+pub use error::*;
 pub use get_member::get_member;
 pub use get_members::get_member_list_for_project;
 pub use get_project::get_project;

@@ -8,7 +8,8 @@ use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{MemberId, MemberName, ProjectAPIError, ProjectStoreError},
+    domain::{MemberId, MemberName, ProjectStoreError},
+    routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
 };
@@ -39,7 +40,10 @@ pub async fn update_member(
         .await
         .map_err(|e| match e {
             ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError(*member_id.as_ref())
+                ProjectAPIError::IDNotFoundError {
+                    id_type: "MemberID".to_string(),
+                    id: member_id.as_ref().to_owned(),
+                }
             }
             e => ProjectAPIError::UnexpectedError(eyre!(e)),
         })?;
@@ -54,7 +58,10 @@ pub async fn update_member(
         .await
         .map_err(|e| match e {
             ProjectStoreError::ProjectIDNotFound => {
-                ProjectAPIError::IDNotFoundError(*member.project_id.as_ref())
+                ProjectAPIError::IDNotFoundError {
+                    id_type: "MemberID".to_string(),
+                    id: member_id.as_ref().to_owned(),
+                }
             }
             e => ProjectAPIError::UnexpectedError(eyre!(e)),
         })?;

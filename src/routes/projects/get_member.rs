@@ -4,7 +4,8 @@ use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{MemberId, ProjectAPIError, ProjectStoreError},
+    domain::{MemberId, ProjectStoreError},
+    routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
 };
@@ -35,7 +36,10 @@ pub async fn get_member(
         .await
         .map_err(|e| match e {
             ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError(*member_id.as_ref())
+                ProjectAPIError::IDNotFoundError {
+                    id_type: "MemberId".to_string(),
+                    id: member_id.as_ref().to_owned(),
+                }
             }
             e => ProjectAPIError::UnexpectedError(eyre!(e)),
         })?;

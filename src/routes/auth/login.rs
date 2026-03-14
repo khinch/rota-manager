@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState,
     domain::{
-        AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserId,
-        UserStoreError,
+        Email, LoginAttemptId, Password, TwoFACode, UserId, UserStoreError,
     },
+    routes::auth::AuthAPIError,
     utils::auth::generate_auth_cookie,
 };
 

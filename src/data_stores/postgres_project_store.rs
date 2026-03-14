@@ -87,6 +87,8 @@ impl ProjectStore for PostgresProjectStore {
         &mut self,
         user_id: &UserId,
     ) -> Result<(), ProjectStoreError> {
+        // TODO Delete all sub-records of the project, and delete references to the project
+
         sqlx::query!(
             r#"
                    DELETE FROM projects_list WHERE user_id = $1
@@ -103,16 +105,8 @@ impl ProjectStore for PostgresProjectStore {
     #[tracing::instrument(name = "Adding member to PostgreSQL", skip_all)]
     async fn add_member(
         &mut self,
-        user_id: &UserId,
         member: &Member,
     ) -> Result<(), ProjectStoreError> {
-        self.get_project_list(&user_id)
-            .await
-            .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?
-            .iter()
-            .find(|(id, _)| id == &member.project_id)
-            .ok_or(ProjectStoreError::ProjectIDNotFound)?;
-
         sqlx::query!(
             r#"
             INSERT INTO members (member_id, project_id, member_name) VALUES ($1, $2, $3)

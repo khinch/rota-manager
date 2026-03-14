@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{
-        AuthAPIError, Email, Password, User, UserPasswordHash, UserStoreError,
-    },
+    domain::{Email, Password, User, UserPasswordHash, UserStoreError},
+    routes::auth::AuthAPIError,
 };
 
 #[tracing::instrument(name = "Signup", skip_all)]

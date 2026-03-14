@@ -117,7 +117,6 @@ pub trait ProjectStore {
     ) -> Result<(), ProjectStoreError>;
     async fn add_member(
         &mut self,
-        user_id: &UserId,
         member: &Member,
     ) -> Result<(), ProjectStoreError>;
     async fn get_member(
@@ -154,29 +153,33 @@ pub trait ProjectStore {
 
 #[derive(Debug, Error)]
 pub enum ProjectStoreError {
-    #[error("Member ID exists")]
+    #[error("Member ID already exists")]
     MemberIDExists,
     #[error("Member ID not found")]
     MemberIDNotFound,
-    #[error("Project ID exists")]
+    #[error("Project ID already exists")]
     ProjectIDExists,
     #[error("Project ID not found")]
     ProjectIDNotFound,
-    #[error("Shift ID exists")]
+    #[error("Shift ID already exists")]
     ShiftIdExists,
-    #[error("Unexpected error")]
-    UnexpectedError(#[source] Report),
+    #[error("Unexpected error: {0}")]
+    UnexpectedError(Report),
 }
 
+#[cfg(test)]
 impl PartialEq for ProjectStoreError {
     fn eq(&self, other: &Self) -> bool {
-        matches!(
-            (self, other),
-            (Self::MemberIDExists, Self::MemberIDExists)
-                | (Self::MemberIDNotFound, Self::MemberIDNotFound)
-                | (Self::ProjectIDExists, Self::ProjectIDExists)
-                | (Self::ProjectIDNotFound, Self::ProjectIDNotFound)
-                | (Self::UnexpectedError(_), Self::UnexpectedError(_))
-        )
+        use ProjectStoreError::*;
+
+        match (self, other) {
+            (MemberIDExists, MemberIDExists) => true,
+            (MemberIDNotFound, MemberIDNotFound) => true,
+            (ProjectIDExists, ProjectIDExists) => true,
+            (ProjectIDNotFound, ProjectIDNotFound) => true,
+            (ShiftIdExists, ShiftIdExists) => true,
+            (UnexpectedError(_), UnexpectedError(_)) => true,
+            _ => false,
+        }
     }
 }

@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{AuthAPIError, Email},
+    domain::Email,
+    routes::auth::AuthAPIError,
     utils::{auth::get_claims, constants::JWT_COOKIE_NAME},
 };
 

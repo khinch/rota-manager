@@ -4,7 +4,8 @@ use color_eyre::eyre::eyre;
 use serde::Deserialize;
 
 use crate::{
-    domain::{Project, ProjectAPIError, ProjectId},
+    domain::{Project, ProjectId},
+    routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
 };

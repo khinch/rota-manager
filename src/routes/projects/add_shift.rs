@@ -6,9 +6,8 @@ use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{
-        Day, MemberId, Minute, ProjectAPIError, ProjectStoreError, Shift,
-    },
+    domain::{Day, MemberId, Minute, ProjectStoreError, Shift},
+    routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
 };
@@ -35,7 +34,10 @@ pub async fn add_shift(
         .await
         .map_err(|e| match e {
             ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError(*shift.member_id.as_ref())
+                ProjectAPIError::IDNotFoundError {
+                    id_type: "MemberId".to_string(),
+                    id: shift.member_id.as_ref().to_owned(),
+                }
             }
             e => ProjectAPIError::UnexpectedError(eyre!(e)),
         })?;
