@@ -77,7 +77,7 @@ impl ProjectStore for PostgresProjectStore {
             sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
                 ProjectStoreError::ProjectIDExists
             }
-            err => ProjectStoreError::UnexpectedError(err.into()),
+            err => ProjectStoreError::UnexpectedError(eyre!(err)),
         })?;
         Ok(())
     }

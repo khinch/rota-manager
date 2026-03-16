@@ -1,9 +1,9 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    application::projects::new_project as new_project_app,
     domain::{ProjectId, ProjectName},
     routes::projects::ProjectAPIError,
     utils::auth::get_claims,
@@ -18,16 +18,10 @@ pub async fn new_project(
 ) -> Result<(StatusCode, CookieJar, Json<NewProjectResponse>), ProjectAPIError>
 {
     let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
-    let project_id = ProjectId::default();
     let project_name = ProjectName::parse(&request.name)?;
 
-    state
-        .project_store
-        .write()
-        .await
-        .add_project(&user_id, &project_id, &project_name)
-        .await
-        .map_err(|e| ProjectAPIError::UnexpectedError(eyre!(e)))?;
+    let project_id: ProjectId =
+        new_project_app(&state.project_store, user_id, &project_name).await?;
 
     let response = Json(NewProjectResponse {
         id: project_id.as_ref().to_string(),
