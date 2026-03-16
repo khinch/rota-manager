@@ -4,6 +4,7 @@ use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    application::projects::get_project_list as get_project_list_app,
     domain::{ProjectId, ProjectName},
     routes::projects::ProjectAPIError,
     utils::auth::get_claims,
@@ -18,13 +19,8 @@ pub async fn get_project_list(
 {
     let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
 
-    let project_list = state
-        .project_store
-        .write()
-        .await
-        .get_project_list(&user_id)
-        .await
-        .map_err(|e| ProjectAPIError::UnexpectedError(eyre!(e)))?;
+    let project_list =
+        get_project_list_app(&state.project_store, user_id).await?;
 
     let response = Json(ProjectListResponse {
         projects: project_list
