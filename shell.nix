@@ -21,15 +21,16 @@ pkgs.callPackage (
       rust-analyzer
       rustup
       rustPlatform.bindgenHook
+      pkgs.bruno
+      pkgs.pgadmin4-desktopmode
+      pkgs.podman
+      pkgs.podman-compose
+      pkgs.postgresql
+      pkgs.sqlx-cli
     ];
     # Libraries and programs needed at runtime, available in the dev shell
     buildInputs =
       [
-        pkgs.bruno
-        pkgs.pgadmin4-desktopmode
-        pkgs.podman
-        pkgs.podman-compose
-        pkgs.postgresql
         pkgs.postman
       ];
     RUSTC_VERSION = overrides.toolchain.channel;

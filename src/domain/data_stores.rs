@@ -121,7 +121,6 @@ pub trait ProjectStore {
     ) -> Result<(), ProjectStoreError>;
     async fn get_member(
         &mut self,
-        user_id: &UserId,
         member_id: &MemberId,
     ) -> Result<Member, ProjectStoreError>;
     async fn update_member(

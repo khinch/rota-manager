@@ -1,19 +1,22 @@
 use axum::{extract::Query, extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{MemberId, ProjectStoreError},
-    routes::projects::ProjectAPIError,
-    utils::auth::get_claims,
-    AppState,
+    application::projects::get_member as get_member_app, domain::MemberId,
+    routes::projects::ProjectAPIError, utils::auth::get_claims, AppState,
 };
 
 #[derive(Deserialize)]
 pub struct QueryParams {
     #[serde(rename = "memberId")]
     member_id: uuid::Uuid,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct MemberResponse {
+    pub id: String,
+    pub name: String,
 }
 
 #[tracing::instrument(name = "Get member route handler", skip_all)]
@@ -23,26 +26,10 @@ pub async fn get_member(
     query_params: Query<QueryParams>,
 ) -> Result<(StatusCode, CookieJar, Json<MemberResponse>), ProjectAPIError> {
     let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
-    tracing::debug!("user_id: {}", user_id.as_ref().to_string(),);
-
     let member_id = MemberId::new(query_params.member_id);
-    tracing::debug!("member_id: {}", member_id.as_ref().to_string());
 
-    let member = state
-        .project_store
-        .write()
-        .await
-        .get_member(&user_id, &member_id)
-        .await
-        .map_err(|e| match e {
-            ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError {
-                    id_type: "MemberId".to_string(),
-                    id: member_id.as_ref().to_owned(),
-                }
-            }
-            e => ProjectAPIError::UnexpectedError(eyre!(e)),
-        })?;
+    let member =
+        get_member_app(&state.project_store, user_id, member_id).await?;
 
     let response = Json(MemberResponse {
         id: member.member_id.as_ref().to_string(),
@@ -50,10 +37,4 @@ pub async fn get_member(
     });
 
     Ok((StatusCode::OK, jar, response))
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct MemberResponse {
-    pub id: String,
-    pub name: String,
 }

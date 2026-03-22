@@ -129,18 +129,15 @@ impl ProjectStore for PostgresProjectStore {
     #[tracing::instrument(name = "Getting member from PostgreSQL", skip_all)]
     async fn get_member(
         &mut self,
-        user_id: &UserId,
         member_id: &MemberId,
     ) -> Result<Member, ProjectStoreError> {
         sqlx::query!(
             r#"
-                SELECT members.project_id, members.member_id, members.member_name
+                SELECT project_id, member_id, member_name
                 FROM members
-                INNER JOIN projects_list ON members.project_id = projects_list.project_id
-                WHERE members.member_id = $1 AND projects_list.user_id = $2
+                WHERE member_id = $1
             "#,
-            member_id.as_ref(),
-            user_id.as_ref()
+            member_id.as_ref()
         )
         .fetch_one(&self.pool)
         .await
@@ -152,10 +149,7 @@ impl ProjectStore for PostgresProjectStore {
             Ok(Member {
                 project_id: ProjectId::new(row.project_id),
                 member_id: MemberId::new(row.member_id),
-                member_name: MemberName::parse(&row.member_name)
-                    .map_err(|e| {
-                        ProjectStoreError::UnexpectedError(eyre!(e))
-                    })?,
+                member_name: MemberName::new(row.member_name),
             })
         })?
     }
@@ -264,7 +258,7 @@ impl ProjectStore for PostgresProjectStore {
         user_id: &UserId,
         shift: &Shift,
     ) -> Result<(), ProjectStoreError> {
-        let _member = self.get_member(&user_id, &shift.member_id).await?;
+        // let _member = self.get_member(&user_id, &shift.member_id).await?;
 
         sqlx::query!(
             r#"

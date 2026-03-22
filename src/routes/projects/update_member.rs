@@ -36,7 +36,7 @@ pub async fn update_member(
         .project_store
         .write()
         .await
-        .get_member(&user_id, &member_id)
+        .get_member(&member_id)
         .await
         .map_err(|e| match e {
             ProjectStoreError::MemberIDNotFound => {

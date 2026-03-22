@@ -27,8 +27,8 @@ pub async fn get_project_list(
 mod tests {
     use crate::{
         app_state::ProjectStoreType,
-        application::projects::new_project,
-        data_stores::HashMapProjectStore,
+        application::projects::get_project_list,
+        data_stores::test_utils::*,
         domain::{ProjectId, ProjectName, UserId},
     };
     use std::sync::Arc;
@@ -36,21 +36,15 @@ mod tests {
 
     fn init_store() -> ProjectStoreType {
         let store: ProjectStoreType =
-            Arc::new(RwLock::new(HashMapProjectStore::default()));
+            Arc::new(RwLock::new(test_init_hashmap_store()));
         store
     }
 
     #[tokio::test]
     async fn test_empty_list() {
         let store = init_store();
-
         let user_id = UserId::default();
-        let project_list = store
-            .write()
-            .await
-            .get_project_list(&user_id)
-            .await
-            .unwrap();
+        let project_list = get_project_list(&store, user_id).await.unwrap();
         assert!(project_list.is_empty());
     }
 
@@ -58,69 +52,60 @@ mod tests {
     async fn test_only_owned_projects_are_returned() {
         let store = init_store();
 
-        let user_id_one = UserId::default();
-        let project_name_one = ProjectName::parse("My Project").unwrap();
-        let user_id_two = UserId::default();
+        let project_list =
+            get_project_list(&store, UserId::parse(U1_USER_ID).unwrap())
+                .await
+                .unwrap();
 
-        let _project = store
-            .write()
-            .await
-            .add_project(&user_id_one, &ProjectId::default(), &project_name_one)
-            .await
-            .unwrap();
+        assert_eq!(project_list.len(), 1);
+        assert_eq!(
+            project_list[0],
+            (
+                ProjectId::parse(U1_P1_PROJECT_ID).unwrap(),
+                ProjectName::parse(U1_P1_PROJECT_NAME).unwrap()
+            )
+        );
 
-        let project_list_one = store
-            .write()
-            .await
-            .get_project_list(&user_id_one)
-            .await
-            .unwrap();
-        assert_eq!(project_list_one.len(), 1);
+        let project_list =
+            get_project_list(&store, UserId::parse(U2_USER_ID).unwrap())
+                .await
+                .unwrap();
 
-        let project_list_two = store
-            .write()
-            .await
-            .get_project_list(&user_id_two)
-            .await
-            .unwrap();
-        assert!(project_list_two.is_empty());
+        assert_eq!(project_list.len(), 2);
+        assert!(project_list.contains(&(
+            ProjectId::parse(U2_P1_PROJECT_ID).unwrap(),
+            ProjectName::parse(U2_P1_PROJECT_NAME).unwrap()
+        )));
+        assert!(project_list.contains(&(
+            ProjectId::parse(U2_P2_PROJECT_ID).unwrap(),
+            ProjectName::parse(U2_P2_PROJECT_NAME).unwrap()
+        )));
     }
 
     #[tokio::test]
-    async fn test_projects_are_faithfully_returned() {
+    async fn test_projects_are_accurately_returned() {
         let store = init_store();
-
-        let user_id = UserId::default();
-        let project_name_one = ProjectName::parse("My Project One").unwrap();
-        let project_name_two = ProjectName::parse("My Project Two").unwrap();
-        let project_id_one = ProjectId::default();
-        let project_id_two = ProjectId::default();
-
-        let _project = store
-            .write()
-            .await
-            .add_project(&user_id, &project_id_one, &project_name_one)
-            .await
-            .unwrap();
-
-        let _project = store
-            .write()
-            .await
-            .add_project(&user_id, &project_id_two, &project_name_two)
-            .await
-            .unwrap();
 
         let project_list = store
             .write()
             .await
-            .get_project_list(&user_id)
+            .get_project_list(&UserId::parse(U2_USER_ID).unwrap())
             .await
             .unwrap();
 
+        let project_one_id = ProjectId::parse(U2_P1_PROJECT_ID).unwrap();
+        let project_two_id = ProjectId::parse(U2_P2_PROJECT_ID).unwrap();
+        let project_one_name = ProjectName::parse(U2_P1_PROJECT_NAME).unwrap();
+        let project_two_name = ProjectName::parse(U2_P2_PROJECT_NAME).unwrap();
+
         assert_eq!(project_list.len(), 2);
-        assert_eq!(project_list[0].0, project_id_one);
-        assert_eq!(project_list[0].1, project_name_one);
-        assert_eq!(project_list[1].0, project_id_two);
-        assert_eq!(project_list[1].1, project_name_two);
+        assert_eq!(
+            project_list.iter().find(|(id, _)| id == &project_one_id),
+            Some(&(project_one_id, project_one_name))
+        );
+        assert_eq!(
+            project_list.iter().find(|(id, _)| id == &project_two_id),
+            Some(&(project_two_id, project_two_name))
+        );
     }
 }

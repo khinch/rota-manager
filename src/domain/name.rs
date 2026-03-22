@@ -20,6 +20,10 @@ macro_rules! name {
                     _ => Ok(Self(name.to_owned())),
                 }
             }
+
+            pub fn new(name: String) -> Self {
+                Self(name)
+            }
         }
 
         impl AsRef<String> for $name {
