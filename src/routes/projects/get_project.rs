@@ -16,7 +16,7 @@ pub struct GetProjectQueryParams {
     project_id: uuid::Uuid,
 }
 
-#[tracing::instrument(name = "Get project route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Get project", skip_all)]
 pub async fn get_project(
     State(state): State<AppState>,
     jar: CookieJar,

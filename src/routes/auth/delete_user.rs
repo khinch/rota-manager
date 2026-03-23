@@ -11,7 +11,7 @@ use crate::{
     utils::{auth::get_claims, constants::JWT_COOKIE_NAME},
 };
 
-#[tracing::instrument(name = "Delete user route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Delete user", skip_all)]
 pub async fn delete_user(
     State(state): State<AppState>,
     jar: CookieJar,

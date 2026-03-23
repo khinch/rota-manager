@@ -1,6 +1,5 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -11,7 +10,7 @@ use crate::{
     AppState,
 };
 
-#[tracing::instrument(name = "Get project list route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Get project list", skip_all)]
 pub async fn get_project_list(
     State(state): State<AppState>,
     jar: CookieJar,

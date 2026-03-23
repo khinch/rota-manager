@@ -19,7 +19,7 @@ pub struct MemberResponse {
     pub name: String,
 }
 
-#[tracing::instrument(name = "Get member route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Get member", skip_all)]
 pub async fn get_member(
     State(state): State<AppState>,
     jar: CookieJar,

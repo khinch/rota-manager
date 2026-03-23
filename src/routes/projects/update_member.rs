@@ -20,7 +20,7 @@ pub struct QueryParams {
     member_id: uuid::Uuid,
 }
 
-#[tracing::instrument(name = "Update member route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Update member", skip_all)]
 pub async fn update_member(
     State(state): State<AppState>,
     jar: CookieJar,

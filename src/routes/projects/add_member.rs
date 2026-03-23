@@ -28,7 +28,7 @@ pub struct AddMemberRequest {
     pub member_name: String,
 }
 
-#[tracing::instrument(name = "Add member to project route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Add member to project", skip_all)]
 pub async fn add_member(
     State(state): State<AppState>,
     jar: CookieJar,

@@ -10,7 +10,7 @@ use crate::{
     AppState,
 };
 
-#[tracing::instrument(name = "Create new project route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Create new project", skip_all)]
 pub async fn new_project(
     State(state): State<AppState>,
     jar: CookieJar,

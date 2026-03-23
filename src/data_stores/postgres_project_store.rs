@@ -32,10 +32,10 @@ impl ProjectStore for PostgresProjectStore {
     ) -> Result<Vec<(ProjectId, ProjectName)>, ProjectStoreError> {
         let rows = sqlx::query!(
             r#"
-                    SELECT project_id, project_name
-                    FROM projects_list
-                    WHERE user_id = $1
-                    "#,
+                SELECT project_id, project_name
+                FROM projects_list
+                WHERE user_id = $1
+            "#,
             user_id.as_ref()
         )
         .fetch_all(&self.pool)

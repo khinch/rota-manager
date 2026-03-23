@@ -8,7 +8,7 @@ use crate::{
     routes::auth::AuthAPIError,
 };
 
-#[tracing::instrument(name = "Signup", skip_all)]
+#[tracing::instrument(name = "[Route hander] Signup", skip_all)]
 pub async fn signup(
     State(state): State<AppState>,
     Json(request): Json<SignupRequest>,

@@ -6,7 +6,7 @@ use crate::{
     domain::{ProjectId, ProjectName, UserId},
 };
 
-#[tracing::instrument(name = "Get project list application layer", skip_all)]
+#[tracing::instrument(name = "[Application] Get project list", skip_all)]
 pub async fn get_project_list(
     project_store: &ProjectStoreType,
     user_id: UserId,

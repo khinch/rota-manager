@@ -12,7 +12,7 @@ use crate::{
     AppState,
 };
 
-#[tracing::instrument(name = "Add shift to project route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Add shift to project", skip_all)]
 pub async fn add_shift(
     State(state): State<AppState>,
     jar: CookieJar,

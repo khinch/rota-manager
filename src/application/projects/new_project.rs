@@ -6,7 +6,7 @@ use crate::{
     domain::{ProjectId, ProjectName, UserId},
 };
 
-#[tracing::instrument(name = "Create new project application layer", skip_all)]
+#[tracing::instrument(name = "[Application] Create new project", skip_all)]
 pub async fn new_project(
     project_store: &ProjectStoreType,
     user_id: UserId,

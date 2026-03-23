@@ -16,7 +16,7 @@ pub struct GetMemberListQueryParams {
     project_id: uuid::Uuid,
 }
 
-#[tracing::instrument(name = "Get member list route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Get member list", skip_all)]
 pub async fn get_member_list_for_project(
     State(state): State<AppState>,
     jar: CookieJar,
