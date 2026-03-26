@@ -2,7 +2,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use crate::domain::{
     Member, MemberId, Project, ProjectId, ProjectName, ProjectStore,
-    ProjectStoreError, Shift, UserId,
+    ProjectStoreError, Shift, ShiftId, UserId,
 };
 use color_eyre::eyre::Result;
 
@@ -10,6 +10,7 @@ use color_eyre::eyre::Result;
 pub struct HashMapProjectStore {
     members: HashMap<MemberId, Member>,
     projects: HashMap<ProjectId, (UserId, ProjectName)>,
+    shifts: HashMap<ShiftId, Shift>,
 }
 
 #[async_trait::async_trait]
@@ -48,7 +49,7 @@ impl ProjectStore for HashMapProjectStore {
 
     async fn delete_projects(
         &mut self,
-        user_id: &UserId,
+        _user_id: &UserId,
     ) -> Result<(), ProjectStoreError> {
         todo!()
     }
@@ -79,36 +80,43 @@ impl ProjectStore for HashMapProjectStore {
     }
     async fn update_member(
         &mut self,
-        user_id: &UserId,
-        member: &Member,
+        _user_id: &UserId,
+        _member: &Member,
     ) -> Result<(), ProjectStoreError> {
         todo!()
     }
     async fn get_members(
         &mut self,
-        user_id: &UserId,
-        project_id: &ProjectId,
+        _user_id: &UserId,
+        _project_id: &ProjectId,
     ) -> Result<Vec<Member>, ProjectStoreError> {
         todo!()
     }
     async fn delete_members(
         &mut self,
-        user_id: &UserId,
-        project_id: &ProjectId,
+        _user_id: &UserId,
+        _project_id: &ProjectId,
     ) -> Result<(), ProjectStoreError> {
         todo!()
     }
     async fn add_shift(
         &mut self,
-        user_id: &UserId,
         shift: &Shift,
     ) -> Result<(), ProjectStoreError> {
-        todo!()
+        match self.shifts.entry(shift.id.clone()) {
+            Entry::Vacant(e) => {
+                e.insert(shift.clone());
+                ()
+            }
+            Entry::Occupied(_) => return Err(ProjectStoreError::ShiftIdExists),
+        }
+
+        Ok(())
     }
     async fn get_project(
         &mut self,
-        user_id: &UserId,
-        project_id: &ProjectId,
+        _user_id: &UserId,
+        _project_id: &ProjectId,
     ) -> Result<Project, ProjectStoreError> {
         todo!()
     }

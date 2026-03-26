@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{Day, MemberId, Minute, ProjectStoreError, Shift},
+    application::projects,
+    domain::{Day, MemberId, Minute},
     routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
@@ -24,23 +24,16 @@ pub async fn add_shift(
     let day = Day::from_str(&request.day)?;
     let start_time = Minute::parse(request.start_time)?;
     let end_time = Minute::parse(request.end_time)?;
-    let shift = Shift::new(member_id, day, start_time, end_time)?;
 
-    state
-        .project_store
-        .write()
-        .await
-        .add_shift(&user_id, &shift)
-        .await
-        .map_err(|e| match e {
-            ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError {
-                    id_type: "MemberId".to_string(),
-                    id: shift.member_id.as_ref().to_owned(),
-                }
-            }
-            e => ProjectAPIError::UnexpectedError(eyre!(e)),
-        })?;
+    let shift = projects::add_shift(
+        &state.project_store,
+        user_id,
+        member_id,
+        day,
+        start_time,
+        end_time,
+    )
+    .await?;
 
     let response = Json(AddShiftResponse {
         id: *shift.id.as_ref(),
@@ -53,7 +46,7 @@ pub async fn add_shift(
     Ok((StatusCode::CREATED, jar, response))
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct AddShiftResponse {
     #[serde(rename = "id")]
     pub id: uuid::Uuid,

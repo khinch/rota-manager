@@ -21,8 +21,8 @@ macro_rules! name {
                 }
             }
 
-            pub fn new(name: String) -> Self {
-                Self(name)
+            pub fn new(name: &str) -> Self {
+                Self(name.to_string())
             }
         }
 

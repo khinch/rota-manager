@@ -32,6 +32,9 @@ impl From<ApplicationError> for ProjectAPIError {
                 id: id.as_ref().to_owned(),
             },
             UnexpectedError(report) => ProjectAPIError::UnexpectedError(report),
+            ShiftValidationError(message) => {
+                ProjectAPIError::ValidationError(message)
+            }
         }
     }
 }

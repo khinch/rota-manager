@@ -1,7 +1,6 @@
-use color_eyre::eyre::Report;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 #[error("Validation error: {0}")]
 pub struct ValidationError(String);
 

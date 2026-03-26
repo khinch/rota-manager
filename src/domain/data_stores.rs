@@ -140,7 +140,6 @@ pub trait ProjectStore {
     ) -> Result<(), ProjectStoreError>;
     async fn add_shift(
         &mut self,
-        user_id: &UserId,
         shift: &Shift,
     ) -> Result<(), ProjectStoreError>;
     async fn get_project(

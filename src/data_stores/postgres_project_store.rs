@@ -149,7 +149,7 @@ impl ProjectStore for PostgresProjectStore {
             Ok(Member {
                 project_id: ProjectId::new(row.project_id),
                 member_id: MemberId::new(row.member_id),
-                member_name: MemberName::new(row.member_name),
+                member_name: MemberName::new(&row.member_name),
             })
         })?
     }
@@ -255,11 +255,8 @@ impl ProjectStore for PostgresProjectStore {
     #[tracing::instrument(name = "Adding shift to PostgreSQL", skip_all)]
     async fn add_shift(
         &mut self,
-        user_id: &UserId,
         shift: &Shift,
     ) -> Result<(), ProjectStoreError> {
-        // let _member = self.get_member(&user_id, &shift.member_id).await?;
-
         sqlx::query!(
             r#"
             INSERT INTO shifts (id, member_id, day, in_time, out_time) VALUES ($1, $2, $3, $4, $5)
