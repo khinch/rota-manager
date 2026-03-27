@@ -87,10 +87,15 @@ impl ProjectStore for HashMapProjectStore {
     }
     async fn get_members(
         &mut self,
-        _user_id: &UserId,
-        _project_id: &ProjectId,
+        project_id: &ProjectId,
     ) -> Result<Vec<Member>, ProjectStoreError> {
-        todo!()
+        let member_list = self
+            .members
+            .values()
+            .filter(|member| &member.project_id == project_id)
+            .map(|member| member.clone())
+            .collect();
+        Ok(member_list)
     }
     async fn delete_members(
         &mut self,

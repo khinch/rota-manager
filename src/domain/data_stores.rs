@@ -130,7 +130,6 @@ pub trait ProjectStore {
     ) -> Result<(), ProjectStoreError>;
     async fn get_members(
         &mut self,
-        user_id: &UserId,
         project_id: &ProjectId,
     ) -> Result<Vec<Member>, ProjectStoreError>;
     async fn delete_members(

@@ -187,16 +187,8 @@ impl ProjectStore for PostgresProjectStore {
     #[tracing::instrument(name = "Getting members from PostgreSQL", skip_all)]
     async fn get_members(
         &mut self,
-        user_id: &UserId,
         project_id: &ProjectId,
     ) -> Result<Vec<Member>, ProjectStoreError> {
-        self.get_project_list(user_id)
-            .await
-            .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?
-            .iter()
-            .find(|(id, _)| id == project_id)
-            .ok_or(ProjectStoreError::ProjectIDNotFound)?;
-
         let rows = sqlx::query!(
             r#"
                 SELECT project_id, member_id, member_name

@@ -67,4 +67,11 @@ mod tests {
             "Max name length is 255 characters"
         );
     }
+
+    #[test]
+    fn invoke_new() {
+        let name_str = "new name";
+        let name = TestName::new(name_str);
+        assert_eq!(name.as_ref(), name_str);
+    }
 }
