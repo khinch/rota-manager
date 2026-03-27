@@ -3,18 +3,18 @@ use color_eyre::eyre::eyre;
 use crate::{
     app_state::ProjectStoreType,
     application::projects::ApplicationError,
-    domain::{MemberId, ProjectId, ProjectStoreError, UserId},
+    domain::{Member, MemberId, ProjectId, ProjectStoreError, UserId},
 };
 
 #[tracing::instrument(
-    name = "[Application] Check user access to members",
+    name = "[Application] Check user access to member",
     skip_all
 )]
 pub async fn check_member_access(
     project_store: &ProjectStoreType,
     user_id: &UserId,
     member_id: &MemberId,
-) -> Result<(), ApplicationError> {
+) -> Result<Member, ApplicationError> {
     let member = project_store
         .write()
         .await
@@ -35,7 +35,8 @@ pub async fn check_member_access(
             }
             _ => ApplicationError::UnexpectedError(eyre!(e)),
         })?;
-    Ok(())
+
+    Ok(member)
 }
 
 #[tracing::instrument(

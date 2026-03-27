@@ -80,10 +80,15 @@ impl ProjectStore for HashMapProjectStore {
     }
     async fn update_member(
         &mut self,
-        _user_id: &UserId,
-        _member: &Member,
+        member: &Member,
     ) -> Result<(), ProjectStoreError> {
-        todo!()
+        if self.members.contains_key(&member.member_id) {
+            self.members
+                .insert(member.member_id.clone(), member.clone());
+            return Ok(());
+        } else {
+            return Err(ProjectStoreError::MemberIDNotFound);
+        }
     }
     async fn get_members(
         &mut self,

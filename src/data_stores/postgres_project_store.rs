@@ -157,16 +157,8 @@ impl ProjectStore for PostgresProjectStore {
     #[tracing::instrument(name = "Updating member in PostgreSQL", skip_all)]
     async fn update_member(
         &mut self,
-        user_id: &UserId,
         member: &Member,
     ) -> Result<(), ProjectStoreError> {
-        self.get_project_list(&user_id)
-            .await
-            .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?
-            .iter()
-            .find(|(id, _)| id == &member.project_id)
-            .ok_or(ProjectStoreError::ProjectIDNotFound)?;
-
         sqlx::query!(
             r#"
             UPDATE members SET member_name = $2

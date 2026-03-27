@@ -4,11 +4,11 @@ use axum::{
     Json,
 };
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{MemberId, MemberName, ProjectStoreError},
+    application::projects,
+    domain::{MemberId, MemberName},
     routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
@@ -32,39 +32,13 @@ pub async fn update_member(
     let member_id = MemberId::new(query_params.member_id);
     let member_name = MemberName::parse(&request.member_name)?;
 
-    let mut member = state
-        .project_store
-        .write()
-        .await
-        .get_member(&member_id)
-        .await
-        .map_err(|e| match e {
-            ProjectStoreError::MemberIDNotFound => {
-                ProjectAPIError::IDNotFoundError {
-                    id_type: "MemberID".to_string(),
-                    id: member_id.as_ref().to_owned(),
-                }
-            }
-            e => ProjectAPIError::UnexpectedError(eyre!(e)),
-        })?;
-
-    member.member_name = member_name;
-
-    state
-        .project_store
-        .write()
-        .await
-        .update_member(&user_id, &member)
-        .await
-        .map_err(|e| match e {
-            ProjectStoreError::ProjectIDNotFound => {
-                ProjectAPIError::IDNotFoundError {
-                    id_type: "MemberID".to_string(),
-                    id: member_id.as_ref().to_owned(),
-                }
-            }
-            e => ProjectAPIError::UnexpectedError(eyre!(e)),
-        })?;
+    let member = projects::update_member(
+        &state.project_store,
+        user_id,
+        member_id,
+        member_name,
+    )
+    .await?;
 
     let response = Json(UpdateMemberResponse {
         project_id: *member.project_id.as_ref(),
@@ -75,7 +49,7 @@ pub async fn update_member(
     Ok((StatusCode::OK, jar, response))
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct UpdateMemberResponse {
     #[serde(rename = "projectId")]
     pub project_id: uuid::Uuid,
