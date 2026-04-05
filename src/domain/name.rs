@@ -2,7 +2,11 @@
 macro_rules! name {
     ($name:ident) => {
         #[derive(
-            Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize,
+            Debug,
+            Clone,
+            PartialEq,
+            serde::Serialize,
+            serde::Deserialize,
         )]
         pub struct $name(String);
 

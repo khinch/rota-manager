@@ -47,10 +47,7 @@ impl ProjectStore for PostgresProjectStore {
         rows.into_iter()
             .map(|row| {
                 let project_id = ProjectId::new(row.project_id);
-                let project_name = ProjectName::parse(&row.project_name)
-                    .map_err(|e| {
-                        ProjectStoreError::UnexpectedError(eyre!(e))
-                    })?;
+                let project_name = ProjectName::new(&row.project_name);
                 Ok((project_id, project_name))
             })
             .collect()
@@ -201,9 +198,7 @@ impl ProjectStore for PostgresProjectStore {
                 let member = Member {
                     project_id: ProjectId::new(row.project_id),
                     member_id: MemberId::new(row.member_id),
-                    member_name: MemberName::parse(&row.member_name).map_err(
-                        |e| ProjectStoreError::UnexpectedError(eyre!(e)),
-                    )?,
+                    member_name: MemberName::new(&row.member_name),
                 };
                 Ok(member)
             })
@@ -268,7 +263,6 @@ impl ProjectStore for PostgresProjectStore {
     )]
     async fn get_project(
         &mut self,
-        user_id: &UserId,
         project_id: &ProjectId,
     ) -> Result<Project, ProjectStoreError> {
         let project_row = sqlx::query!(
@@ -276,10 +270,8 @@ impl ProjectStore for PostgresProjectStore {
             SELECT project_id, project_name
             FROM projects_list
             WHERE project_id = $1
-            AND user_id = $2
             "#,
             project_id.as_ref(),
-            user_id.as_ref()
         )
         .fetch_one(&self.pool)
         .await
@@ -303,14 +295,13 @@ impl ProjectStore for PostgresProjectStore {
         let mut member_map = HashMap::<uuid::Uuid, ProjectMember>::new();
         for row in member_rows {
             let member_id = MemberId::new(row.member_id);
-            let member_name = MemberName::parse(&row.member_name)
-                .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?;
+            let member_name = MemberName::new(&row.member_name);
             member_map.insert(
                 member_id.as_ref().to_owned(),
                 ProjectMember {
                     member_id,
                     member_name,
-                    shifts: Vec::new(),
+                    shifts: vec![],
                 },
             );
         }
@@ -339,12 +330,8 @@ impl ProjectStore for PostgresProjectStore {
                         day: Day::try_from(row.day).map_err(|e| {
                             ProjectStoreError::UnexpectedError(eyre!(e))
                         })?,
-                        start_time: Minute::parse(row.in_time).map_err(
-                            |e| ProjectStoreError::UnexpectedError(eyre!(e)),
-                        )?,
-                        end_time: Minute::parse(row.out_time).map_err(|e| {
-                            ProjectStoreError::UnexpectedError(eyre!(e))
-                        })?,
+                        start_time: Minute::new(row.in_time),
+                        end_time: Minute::new(row.out_time),
                     };
                     member.shifts.push(shift);
                 }
@@ -353,8 +340,7 @@ impl ProjectStore for PostgresProjectStore {
 
         let project = Project {
             project_id: ProjectId::new(project_row.project_id),
-            project_name: ProjectName::parse(&project_row.project_name)
-                .map_err(|e| ProjectStoreError::UnexpectedError(eyre!(e)))?,
+            project_name: ProjectName::new(&project_row.project_name),
             members: member_map.into_values().collect(),
         };
 

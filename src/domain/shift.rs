@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize 
+)]
 pub struct Shift {
     pub id: ShiftId,
     #[serde(skip_serializing)]
@@ -59,7 +61,7 @@ fn validate_shift(
 id!(ShiftId);
 
 #[repr(i16)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Day {
     Sunday = 0,
     Monday = 1,
@@ -140,6 +142,10 @@ impl Minute {
     pub fn parse(minute: i16) -> Result<Self, ValidationError> {
         validate_minute(minute)?;
         Ok(Self(minute))
+    }
+
+    pub fn new(minute: i16) -> Self {
+        Self(minute)
     }
 
     pub fn value_of(&self) -> i16 {

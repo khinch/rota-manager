@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{domain::Shift, id, name};
 
@@ -7,7 +7,7 @@ use super::{MemberId, MemberName};
 id!(ProjectId);
 name!(ProjectName);
 
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct Project {
     #[serde(rename = "projectId")]
     pub project_id: ProjectId,
@@ -30,7 +30,7 @@ impl Project {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct ProjectMember {
     #[serde(rename = "memberId")]
     pub member_id: MemberId,

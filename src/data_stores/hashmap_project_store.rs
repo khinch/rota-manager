@@ -1,8 +1,8 @@
 use std::collections::{hash_map::Entry, HashMap};
 
 use crate::domain::{
-    Member, MemberId, Project, ProjectId, ProjectName, ProjectStore,
-    ProjectStoreError, Shift, ShiftId, UserId,
+    Member, MemberId, Project, ProjectId, ProjectMember, ProjectName,
+    ProjectStore, ProjectStoreError, Shift, ShiftId, UserId,
 };
 use color_eyre::eyre::Result;
 
@@ -125,17 +125,49 @@ impl ProjectStore for HashMapProjectStore {
     }
     async fn get_project(
         &mut self,
-        _user_id: &UserId,
-        _project_id: &ProjectId,
+        project_id: &ProjectId,
     ) -> Result<Project, ProjectStoreError> {
-        todo!()
+        let (_, project_name) = self
+            .projects
+            .get(&project_id)
+            .ok_or(ProjectStoreError::ProjectIDNotFound)?;
+
+        let member_shifts = |member_id: &MemberId| {
+            self.shifts
+                .values()
+                .filter(|shift| &shift.member_id == member_id)
+                .map(|member| member.clone())
+                .collect()
+        };
+
+        let member_list = self
+            .members
+            .values()
+            .filter(|member| &member.project_id == project_id)
+            .map(|member| {
+                ProjectMember::new(
+                    member.member_id.clone(),
+                    member.member_name.clone(),
+                    member_shifts(&member.member_id),
+                )
+            })
+            .collect();
+
+        // let member_list = self.members.values().cloned().collect();
+
+        Ok(Project {
+            project_name: project_name.clone(),
+            project_id: project_id.clone(),
+            members: member_list,
+        })
     }
 }
 
 #[cfg(test)]
 pub mod test_utils {
     use crate::domain::{
-        Member, MemberId, MemberName, ProjectId, ProjectName, UserId,
+        Day, Member, MemberId, MemberName, Minute, ProjectId, ProjectName,
+        Shift, ShiftId, UserId,
     };
 
     use super::HashMapProjectStore;
@@ -163,8 +195,16 @@ pub mod test_utils {
     pub const U2_P2_PROJECT_NAME: &str = "Test Project Two";
     pub const U2_P2_M1_MEMBER_ID: &str = "22222222-2222-2222-2222-111111111111";
     pub const U2_P2_M1_MEMBER_NAME: &str = "Test Project Two - Member One";
+    pub const U2_P2_M1_S1_SHIFT_ID: &str =
+        "33333333-2222-2222-1111-111111111111";
+    pub const U2_P2_M1_S2_SHIFT_ID: &str =
+        "33333333-2222-2222-1111-222222222222";
     pub const U2_P2_M2_MEMBER_ID: &str = "22222222-2222-2222-2222-222222222222";
     pub const U2_P2_M2_MEMBER_NAME: &str = "Test Project Two - Member Two";
+    pub const U2_P2_M2_S1_SHIFT_ID: &str =
+        "33333333-2222-2222-2222-111111111111";
+    pub const U2_P2_M2_S2_SHIFT_ID: &str =
+        "33333333-2222-2222-2222-222222222222";
 
     /// Initiates a store pre-populated with data for testing
     ///
@@ -191,7 +231,12 @@ pub mod test_utils {
     /// member_id  22222222-2222-1111-1111-222222222222 Test Project One - Member Two
     /// project_id 11111111-2222-2222-2222-222222222222 Test Project Two
     /// member_id  22222222-2222-2222-2222-111111111111 Test Project Two - Member One
+    /// shift_id   33333333-2222-2222-1111-111111111111 Monday  9am - 5pm
+    /// shift_id   33333333-2222-2222-1111-222222222222 Tuesday 9am - 5pm
     /// member_id  22222222-2222-2222-2222-222222222222 Test Project Two - Member Two
+    /// shift_id   33333333-2222-2222-2222-111111111111 Monday  8am - 12pm
+    /// shift_id   33333333-2222-2222-2222-222222222222 Monday  1pm - 5pm
+
     pub fn test_init_hashmap_store() -> HashMapProjectStore {
         let mut store = HashMapProjectStore::default();
 
@@ -226,7 +271,8 @@ pub mod test_utils {
             },
         );
 
-        // User two, with two projects, two members in each
+        // User two, with two projects, two members in each, and
+        // two shifts each in second project
         store.projects.insert(
             ProjectId::parse(U2_P1_PROJECT_ID).expect("failed to parse UUID"),
             (
@@ -272,12 +318,56 @@ pub mod test_utils {
             },
         );
 
+        store.shifts.insert(
+            ShiftId::parse(U2_P2_M1_S1_SHIFT_ID).unwrap(),
+            Shift {
+                id: ShiftId::parse(U2_P2_M1_S1_SHIFT_ID).unwrap(),
+                member_id: MemberId::parse(U2_P2_M1_MEMBER_ID).unwrap(),
+                day: Day::Monday,
+                start_time: Minute::parse(540).unwrap(),
+                end_time: Minute::parse(1020).unwrap(),
+            },
+        );
+
+        store.shifts.insert(
+            ShiftId::parse(U2_P2_M1_S2_SHIFT_ID).unwrap(),
+            Shift {
+                id: ShiftId::parse(U2_P2_M1_S2_SHIFT_ID).unwrap(),
+                member_id: MemberId::parse(U2_P2_M1_MEMBER_ID).unwrap(),
+                day: Day::Tuesday,
+                start_time: Minute::parse(540).unwrap(),
+                end_time: Minute::parse(1020).unwrap(),
+            },
+        );
+
         store.members.insert(
             MemberId::parse(U2_P2_M2_MEMBER_ID).unwrap(),
             Member {
                 project_id: ProjectId::parse(U2_P2_PROJECT_ID).unwrap(),
                 member_id: MemberId::parse(U2_P2_M2_MEMBER_ID).unwrap(),
                 member_name: MemberName::parse(U2_P2_M2_MEMBER_NAME).unwrap(),
+            },
+        );
+
+        store.shifts.insert(
+            ShiftId::parse(U2_P2_M2_S1_SHIFT_ID).unwrap(),
+            Shift {
+                id: ShiftId::parse(U2_P2_M2_S1_SHIFT_ID).unwrap(),
+                member_id: MemberId::parse(U2_P2_M2_MEMBER_ID).unwrap(),
+                day: Day::Monday,
+                start_time: Minute::parse(480).unwrap(),
+                end_time: Minute::parse(720).unwrap(),
+            },
+        );
+
+        store.shifts.insert(
+            ShiftId::parse(U2_P2_M2_S2_SHIFT_ID).unwrap(),
+            Shift {
+                id: ShiftId::parse(U2_P2_M2_S2_SHIFT_ID).unwrap(),
+                member_id: MemberId::parse(U2_P2_M2_MEMBER_ID).unwrap(),
+                day: Day::Monday,
+                start_time: Minute::parse(780).unwrap(),
+                end_time: Minute::parse(1020).unwrap(),
             },
         );
 

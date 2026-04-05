@@ -142,7 +142,6 @@ pub trait ProjectStore {
     ) -> Result<(), ProjectStoreError>;
     async fn get_project(
         &mut self,
-        user_id: &UserId,
         project_id: &ProjectId,
     ) -> Result<Project, ProjectStoreError>;
 }
