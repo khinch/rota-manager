@@ -2,7 +2,13 @@
 macro_rules! id {
     ($name:ident) => {
         #[derive(
-            Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize,
+            Clone,
+            Debug,
+            Eq,
+            Hash,
+            PartialEq,
+            serde::Deserialize,
+            serde::Serialize,
         )]
         pub struct $name(uuid::Uuid);
 
@@ -12,7 +18,8 @@ macro_rules! id {
             ) -> Result<Self, crate::domain::error::ValidationError> {
                 let parsed = uuid::Uuid::try_parse(id).map_err(|e| {
                     crate::domain::error::ValidationError::new(format!(
-                        "Invalid ID: {e}"
+                        "Invalid {}: {e}",
+                        stringify!($name)
                     ))
                 })?;
                 Ok(Self(parsed))
@@ -32,6 +39,12 @@ macro_rules! id {
         impl AsRef<uuid::Uuid> for $name {
             fn as_ref(&self) -> &uuid::Uuid {
                 &self.0
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
             }
         }
     };
@@ -57,7 +70,7 @@ mod tests {
         let invalid_id = "5b5b32e3a66cc-45bc-82d1-d41582139f1e";
         let result = TestId::parse(invalid_id);
         let error = result.expect_err(invalid_id);
-        assert_eq!(error.as_ref(), "Invalid ID: failed to parse a UUID");
+        assert_eq!(error.as_ref(), "Invalid TestId: failed to parse a UUID");
     }
 
     #[test]

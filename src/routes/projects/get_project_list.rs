@@ -1,15 +1,16 @@
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{ProjectAPIError, ProjectId, ProjectName},
+    application::projects::get_project_list as get_project_list_app,
+    domain::{ProjectId, ProjectName},
+    routes::projects::ProjectAPIError,
     utils::auth::get_claims,
     AppState,
 };
 
-#[tracing::instrument(name = "Get project list route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Get project list", skip_all)]
 pub async fn get_project_list(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -17,13 +18,8 @@ pub async fn get_project_list(
 {
     let user_id = get_claims(&jar, &state.banned_token_store).await?.id;
 
-    let project_list = state
-        .project_store
-        .write()
-        .await
-        .get_project_list(&user_id)
-        .await
-        .map_err(|e| ProjectAPIError::UnexpectedError(eyre!(e)))?;
+    let project_list =
+        get_project_list_app(&state.project_store, user_id).await?;
 
     let response = Json(ProjectListResponse {
         projects: project_list

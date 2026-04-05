@@ -1,3 +1,4 @@
+mod hashmap_project_store;
 mod hashmap_two_fa_code_store;
 mod hashset_banned_token_store;
 mod postgres_project_store;
@@ -5,6 +6,7 @@ mod postgres_user_store;
 mod redis_banned_token_store;
 mod redis_two_fa_code_store;
 
+pub use hashmap_project_store::*;
 pub use hashmap_two_fa_code_store::*;
 pub use hashset_banned_token_store::*;
 pub use postgres_project_store::*;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT members.project_id, members.member_id, members.member_name\n                FROM members\n                INNER JOIN projects_list ON members.project_id = projects_list.project_id\n                WHERE members.member_id = $1 AND projects_list.user_id = $2\n            ",
+  "query": "\n                SELECT project_id, member_id, member_name\n                FROM members\n                WHERE member_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -21,7 +21,6 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Uuid"
       ]
     },
@@ -31,5 +30,5 @@
       false
     ]
   },
-  "hash": "2492a7d9d9e3d2e00d666963c656095b3202c43105309df3d0d46beb0e9be325"
+  "hash": "ace8d8b3972558d9f05face9d3cacc4b790db40752153868bb6280015a749b97"
 }

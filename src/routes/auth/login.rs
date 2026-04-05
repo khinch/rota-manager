@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState,
     domain::{
-        AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserId,
-        UserStoreError,
+        Email, LoginAttemptId, Password, TwoFACode, UserId, UserStoreError,
     },
+    routes::auth::AuthAPIError,
     utils::auth::generate_auth_cookie,
 };
 
-#[tracing::instrument(name = "Login", skip_all)]
+#[tracing::instrument(name = "[Route handler] Login", skip_all)]
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,

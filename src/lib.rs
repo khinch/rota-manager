@@ -15,9 +15,11 @@ use tokio::signal;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::Level;
 
-use domain::{AuthAPIError, ProjectAPIError};
 pub mod routes;
-use crate::utils::tracing::*;
+use crate::{
+    routes::{auth::AuthAPIError, projects::ProjectAPIError},
+    utils::tracing::*,
+};
 use routes::{
     auth::{delete_user, login, logout, signup, verify_2fa, verify_token},
     projects::{
@@ -26,6 +28,8 @@ use routes::{
     },
 };
 pub mod app_state;
+pub mod application;
+pub mod data_stores;
 pub mod domain;
 pub mod services;
 use app_state::AppState;
@@ -84,13 +88,9 @@ impl IntoResponse for AuthAPIError {
 impl IntoResponse for ProjectAPIError {
     fn into_response(self) -> Response {
         let (status, error_message) = match &self {
-            ProjectAPIError::IDNotFoundError(id) => {
+            ProjectAPIError::IDNotFoundError { id_type, id } => {
                 log_error_chain(&self, Level::DEBUG);
-                (StatusCode::NOT_FOUND, format!("{id}"))
-            }
-            ProjectAPIError::IDExistsError(id) => {
-                log_error_chain(&self, Level::DEBUG);
-                (StatusCode::CONFLICT, format!("{id}"))
+                (StatusCode::NOT_FOUND, format!("{id_type} not found: {id}"))
             }
             ProjectAPIError::AuthenticationError(auth_error) => {
                 log_error_chain(&self, Level::DEBUG);

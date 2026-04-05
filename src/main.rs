@@ -5,15 +5,13 @@ use tokio::sync::RwLock;
 
 use rota_manager::{
     app_state::AppState,
+    data_stores::{
+        PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
+        RedisTwoFACodeStore,
+    },
     domain::Email,
     get_postgres_pool, get_redis_client,
-    services::{
-        data_stores::{
-            PostgresProjectStore, PostgresUserStore, RedisBannedTokenStore,
-            RedisTwoFACodeStore,
-        },
-        postmark_email_client::PostmarkEmailClient,
-    },
+    services::postmark_email_client::PostmarkEmailClient,
     utils::{
         constants::{
             prod, DATABASE_URL, POSTMARK_AUTH_TOKEN,

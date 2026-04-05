@@ -2,7 +2,11 @@
 macro_rules! name {
     ($name:ident) => {
         #[derive(
-            Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize,
+            Debug,
+            Clone,
+            PartialEq,
+            serde::Serialize,
+            serde::Deserialize,
         )]
         pub struct $name(String);
 
@@ -19,6 +23,10 @@ macro_rules! name {
                     )),
                     _ => Ok(Self(name.to_owned())),
                 }
+            }
+
+            pub fn new(name: &str) -> Self {
+                Self(name.to_string())
             }
         }
 
@@ -62,5 +70,12 @@ mod tests {
             result.unwrap_err().as_ref(),
             "Max name length is 255 characters"
         );
+    }
+
+    #[test]
+    fn invoke_new() {
+        let name_str = "new name";
+        let name = TestName::new(name_str);
+        assert_eq!(name.as_ref(), name_str);
     }
 }

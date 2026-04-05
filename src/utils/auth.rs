@@ -135,8 +135,7 @@ pub struct Claims {
 #[cfg(test)]
 mod tests {
     use crate::{
-        domain::BannedTokenStore,
-        services::data_stores::HashsetBannedTokenStore,
+        data_stores::HashsetBannedTokenStore, domain::BannedTokenStore,
     };
     use secrecy::Secret;
     use std::sync::Arc;

@@ -4,12 +4,12 @@ use color_eyre::eyre::eyre;
 use secrecy::Secret;
 
 use crate::{
-    domain::AuthAPIError,
+    routes::auth::AuthAPIError,
     utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
     AppState,
 };
 
-#[tracing::instrument(name = "Logout route handler", skip_all)]
+#[tracing::instrument(name = "[Route handler] Logout", skip_all)]
 pub async fn logout(
     State(state): State<AppState>,
     jar: CookieJar,

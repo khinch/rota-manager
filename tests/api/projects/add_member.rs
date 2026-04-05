@@ -127,7 +127,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 "memberName": "",
                 "projectId": project_id
             }),
-            "Validation error: Member name cannot be empty",
+            "Validation error: Name cannot be empty",
         ),
         (
             serde_json::json!({
@@ -141,7 +141,7 @@ async fn should_return_400_if_invalid_input(app: &mut TestApp) {
                 "memberName": "foo",
                 "projectId": "ge9915f0-a4c2-48fb-977b-9f4f959c5729"
             }),
-            "Validation error: Invalid ID: failed to parse a UUID",
+            "Validation error: Invalid ProjectId: failed to parse a UUID",
         ),
     ];
 
